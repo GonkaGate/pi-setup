@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/GonkaGate/pi-setup/compare/v0.2.1...v0.2.2) (2026-06-23)
+
+
+### Bug Fixes
+
+* make setup command non-interactive ([66aa585](https://github.com/GonkaGate/pi-setup/commit/66aa585032ab53e5ca668eeb8c728bd81d8eb2e4))
+
 ## [0.2.1](https://github.com/GonkaGate/pi-setup/compare/v0.2.0...v0.2.1) (2026-06-23)
 
 

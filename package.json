@@ -1,6 +1,6 @@
 {
   "name": "@gonkagate/pi-setup",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Configure Pi Coding Agent to use GonkaGate as an OpenAI-compatible custom provider.",
   "homepage": "https://github.com/GonkaGate/pi-setup#readme",
   "bugs": {

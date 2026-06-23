@@ -16,7 +16,7 @@ use GonkaGate as a custom model provider.
 Recommended public flow:
 
 ```bash
-npx @gonkagate/pi-setup
+npx -y @gonkagate/pi-setup@latest --yes
 ```
 
 The first supported runtime should stay intentionally small: write a curated
@@ -192,7 +192,7 @@ approve adding more Pi model metadata.
 User runs:
 
 ```bash
-npx @gonkagate/pi-setup
+npx -y @gonkagate/pi-setup@latest
 ```
 
 Expected behavior:
@@ -225,7 +225,7 @@ is visible in the active session. Current Pi docs say the file reloads when
 User runs:
 
 ```bash
-npx @gonkagate/pi-setup --yes
+npx -y @gonkagate/pi-setup@latest --yes
 ```
 
 Expected behavior:
@@ -239,7 +239,7 @@ Expected behavior:
 User runs:
 
 ```bash
-npx @gonkagate/pi-setup --dry-run
+npx -y @gonkagate/pi-setup@latest --dry-run
 ```
 
 Expected behavior:
@@ -253,7 +253,7 @@ Expected behavior:
 User runs:
 
 ```bash
-npx @gonkagate/pi-setup --yes --json
+npx -y @gonkagate/pi-setup@latest --yes --json
 ```
 
 Expected behavior:
@@ -524,7 +524,7 @@ Possible future behavior:
 
 ## Acceptance Criteria For V1
 
-- `npx @gonkagate/pi-setup --yes` creates or updates
+- `npx -y @gonkagate/pi-setup@latest --yes` creates or updates
   `~/.pi/agent/models.json`.
 - Existing unrelated providers remain unchanged.
 - Existing target config receives a backup before replacement.

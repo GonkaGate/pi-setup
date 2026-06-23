@@ -13,6 +13,13 @@
 - Keep plain `--api-key` unsupported and redact accidental `gp-...` keys from
   user-facing error output.
 
+## [0.3.0](https://github.com/GonkaGate/pi-setup/compare/v0.2.2...v0.3.0) (2026-06-23)
+
+
+### Features
+
+* add Pi auth and default setup flow ([07de17e](https://github.com/GonkaGate/pi-setup/commit/07de17e92d6a8a0160c6bc3ff9d674db47d2e76b))
+
 ## [0.2.2](https://github.com/GonkaGate/pi-setup/compare/v0.2.1...v0.2.2) (2026-06-23)
 
 

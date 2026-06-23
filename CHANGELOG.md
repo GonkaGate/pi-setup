@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/GonkaGate/pi-setup/compare/v0.2.0...v0.2.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* read CLI version from package metadata ([e27a2de](https://github.com/GonkaGate/pi-setup/commit/e27a2de2b657ce0bc65615fd02979e0ad0e9e220))
+
 ## [0.2.0](https://github.com/GonkaGate/pi-setup/compare/v0.1.0...v0.2.0) (2026-06-23)
 
 

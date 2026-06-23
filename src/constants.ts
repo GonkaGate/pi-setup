@@ -1,5 +1,4 @@
 export const PACKAGE_NAME = "@gonkagate/pi-setup";
-export const PACKAGE_VERSION = "0.1.0";
 export const BIN_NAME = "pi-setup";
 export const LEGACY_BIN_NAME = "gonkagate-pi";
 export const BIN_PATH = "bin/gonkagate-pi.js";

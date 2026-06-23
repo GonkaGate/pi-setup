@@ -1,10 +1,10 @@
+import { createRequire } from "node:module";
 import process from "node:process";
 import { createInterface } from "node:readline/promises";
 import {
   BIN_NAME,
   GONKAGATE_API_KEY_ENV,
   PACKAGE_NAME,
-  PACKAGE_VERSION,
   RECOMMENDED_MODEL_ID,
 } from "./constants.js";
 import { isEntrypointInvocation } from "./entrypoint.js";
@@ -50,6 +50,12 @@ const defaultIo: CliIo = {
   error: process.stderr,
 };
 
+const packageVersion = (
+  createRequire(import.meta.url)("../package.json") as {
+    readonly version: string;
+  }
+).version;
+
 export async function main(): Promise<void> {
   process.exitCode = await run(process.argv, process.env, defaultIo);
 }
@@ -74,7 +80,7 @@ export async function run(
   }
 
   if (options.version) {
-    io.output.write(`${PACKAGE_VERSION}\n`);
+    io.output.write(`${packageVersion}\n`);
     return 0;
   }
 

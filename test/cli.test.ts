@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { renderCliEntrypointError, run } from "../src/cli.js";
-import { GONKAGATE_PROVIDER_ID, PACKAGE_VERSION } from "../src/constants.js";
+import { GONKAGATE_PROVIDER_ID } from "../src/constants.js";
 
 test("CLI writes GonkaGate provider config", async () => {
   const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
@@ -358,6 +358,10 @@ test("CLI help documents the small setup surface", async () => {
 });
 
 test("CLI version flags match the package version", async () => {
+  const packageJson = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  ) as { readonly version: string };
+
   for (const flag of ["--version", "-v"]) {
     const output: string[] = [];
     const error: string[] = [];
@@ -370,7 +374,7 @@ test("CLI version flags match the package version", async () => {
 
     assert.equal(exitCode, 0);
     assert.equal(error.join(""), "");
-    assert.equal(output.join(""), `${PACKAGE_VERSION}\n`);
+    assert.equal(output.join(""), `${packageJson.version}\n`);
   }
 });
 

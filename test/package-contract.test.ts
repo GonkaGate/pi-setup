@@ -10,7 +10,6 @@ import {
   GONKAGATE_PROVIDER_ID,
   LEGACY_BIN_NAME,
   PACKAGE_NAME,
-  PACKAGE_VERSION,
 } from "../src/constants.js";
 import { resolveDefaultPiModelsPath } from "../src/paths.js";
 import { listRelativeFiles, readText, repoRoot } from "./contract-helpers.js";
@@ -22,7 +21,6 @@ interface PackageJson {
   readonly name?: string;
   readonly scripts?: Record<string, string>;
   readonly type?: string;
-  readonly version?: string;
 }
 
 test("package metadata matches the public scaffold contract", () => {
@@ -30,7 +28,6 @@ test("package metadata matches the public scaffold contract", () => {
 
   assert.equal(packageJson.name, PACKAGE_NAME);
   assert.equal(packageJson.type, "module");
-  assert.equal(packageJson.version, PACKAGE_VERSION);
   assert.equal(packageJson.bin?.[BIN_NAME], BIN_PATH);
   assert.equal(packageJson.bin?.[LEGACY_BIN_NAME], BIN_PATH);
   assert.equal(packageJson.engines?.node, ">=22.14.0");

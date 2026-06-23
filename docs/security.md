@@ -1,8 +1,16 @@
 # Security
 
-`pi-setup` does not accept or store GonkaGate API keys in the initial runtime.
+`pi-setup` stores a GonkaGate API key only in Pi's user auth file:
+`~/.pi/agent/auth.json`.
 
-The managed provider config uses this Pi-native env binding:
+Allowed secret inputs:
+
+- `GONKAGATE_API_KEY`
+- `--api-key-stdin`
+- hidden interactive prompt
+
+The managed provider config still uses this Pi-native env binding so custom
+models load consistently with Pi's provider schema:
 
 ```json
 {
@@ -10,14 +18,14 @@ The managed provider config uses this Pi-native env binding:
 }
 ```
 
-Users should export `GONKAGATE_API_KEY` themselves or use Pi's own
-credential-management flow when appropriate.
-
 Security rules:
 
 - no `--api-key` flag
+- no raw `gp-...` key in stdout or stderr
 - no repository-local secret storage
-- no `auth.json` writes
 - no shell profile mutation
 - no `.env` generation
-- backup before replacing an existing `models.json`
+- no arbitrary custom base URLs or arbitrary custom model ids
+- no default live Pi/GonkaGate verification
+- backup before replacing existing `models.json`, `auth.json`, or
+  `settings.json`

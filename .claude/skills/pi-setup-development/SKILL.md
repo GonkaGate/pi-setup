@@ -14,6 +14,8 @@ Current runtime contract:
 - package bin: `bin/gonkagate-pi.js`
 - runtime entrypoint: `src/cli.ts`
 - config target: `~/.pi/agent/models.json`
+- auth target: `~/.pi/agent/auth.json`
+- settings target: `~/.pi/agent/settings.json`
 - managed key: `providers.gonkagate`
 - base URL: `https://api.gonkagate.com/v1`
 - Pi API type: `openai-completions`
@@ -23,10 +25,14 @@ Current runtime contract:
 Rules:
 
 - preserve unrelated Pi config when editing `models.json`
-- create a backup before replacing an existing `models.json`
-- document restore by copying the generated backup back over `models.json`
+- preserve unrelated Pi auth/settings entries when editing `auth.json` and
+  `settings.json`
+- create a backup before replacing an existing managed Pi config file
+- document restore by copying the generated backup back over the affected file
 - never accept or print `gp-...` secrets
-- do not write `~/.pi/agent/auth.json` without an explicit product change
+- allowed secret inputs are `GONKAGATE_API_KEY`, `--api-key-stdin`, and a hidden
+  prompt
+- never add a plain `--api-key` flag
 - do not mutate shell profiles
 - do not generate `.env` files
 - do not add arbitrary custom base URLs or arbitrary custom model ids
@@ -35,5 +41,5 @@ Rules:
 - run `npm run ci` before calling the change ready
 
 Use the smallest useful implementation. Pi already owns credential storage,
-model switching, and custom-provider loading; this CLI should not duplicate
-those systems unless the product contract changes.
+model switching, and custom-provider loading; this CLI should only write the
+small Pi-native config entries needed for GonkaGate.

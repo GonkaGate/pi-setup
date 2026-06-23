@@ -26,7 +26,11 @@ test("repo skill documents the current Pi setup contract", () => {
 
   assert.match(skill, /@gonkagate\/pi-setup/);
   assert.match(skill, /~\/\.pi\/agent\/models\.json/);
+  assert.match(skill, /~\/\.pi\/agent\/auth\.json/);
+  assert.match(skill, /~\/\.pi\/agent\/settings\.json/);
   assert.match(skill, /GONKAGATE_API_KEY/);
+  assert.match(skill, /--api-key-stdin/);
+  assert.match(skill, /hidden\s+prompt/);
   assert.match(skill, /providers\.gonkagate/);
   assert.match(skill, /configured/);
   assert.match(skill, /verified/);
@@ -37,6 +41,7 @@ test("repo skill documents the current Pi setup contract", () => {
   assert.match(skill, /arbitrary custom base URLs/);
   assert.match(skill, /arbitrary custom model ids/);
   assert.match(skill, /default live GonkaGate\/Pi verification/);
+  assert.match(skill, /never add a plain `--api-key` flag/);
   assert.doesNotMatch(skill, /opencode/);
   assert.doesNotMatch(
     skill,

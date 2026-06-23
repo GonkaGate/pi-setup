@@ -19,29 +19,38 @@ npx -y @gonkagate/pi-setup@latest
 [![X](https://img.shields.io/badge/X-%40gonkagate-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/gonkagate)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-GonkaGate-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/gonkagate)
 
-`@gonkagate/pi-setup` is the config-only onboarding CLI for developers who use
-Pi Coding Agent and want to route models through the GonkaGate API without
-hand-editing Pi's `~/.pi/agent/models.json` provider catalog.
+`@gonkagate/pi-setup` is the onboarding CLI for developers who use Pi Coding
+Agent and want to route models through the GonkaGate API without hand-editing
+Pi's provider, auth, or default-model config.
 
 ## What It Does
 
 - Writes a `providers.gonkagate` entry to `~/.pi/agent/models.json`.
 - Preserves unrelated Pi providers and top-level config.
-- Uses Pi's native `$GONKAGATE_API_KEY` env binding.
-- Does not collect or store your API key.
-- Creates a sibling backup before replacing an existing `models.json`.
+- Reads your API key from `GONKAGATE_API_KEY`, `--api-key-stdin`, or a hidden
+  prompt.
+- Writes a Pi-compatible `gonkagate` API-key entry to
+  `~/.pi/agent/auth.json`.
+- Sets `defaultProvider` and `defaultModel` in `~/.pi/agent/settings.json`.
+- Creates sibling backups before replacing existing managed files.
 - Installs the curated GonkaGate model catalog for Pi Coding Agent.
+- Does not accept a plain `--api-key` flag and never prints `gp-...` keys.
 
-Setup success means `configured`: GonkaGate is present in `models.json`. It does
-not mean `verified`; a live Pi session may still need to load the provider and
-GonkaGate may still need a valid user-provided key.
+Setup success means `configured`: GonkaGate config and Pi auth/default settings
+were written or already matched. It does not mean `verified`; default setup does
+not make a live GonkaGate API call.
 
 ## Quick Start
 
 ```bash
 npx -y @gonkagate/pi-setup@latest
-export GONKAGATE_API_KEY=gp-...
-pi --provider gonkagate --model moonshotai/Kimi-K2.6
+pi
+```
+
+For automation, avoid shell history by using stdin:
+
+```bash
+printf '%s' "$GONKAGATE_API_KEY" | npx -y @gonkagate/pi-setup@latest --yes --api-key-stdin
 ```
 
 Preview the generated config without writing:
@@ -57,15 +66,15 @@ npx -y @gonkagate/pi-setup@latest --config ./models.json
 ```
 
 Restore from a backup by copying the generated `models.json.backup-*` file back
-over `~/.pi/agent/models.json`.
+over `~/.pi/agent/models.json`. Auth and settings backups use the same sibling
+pattern beside `auth.json` and `settings.json`.
 
-## V1 Limits
+## Limits
 
-The setup is config-only and network-free. It does not write
-`~/.pi/agent/auth.json`, mutate shell profiles, generate `.env` files, accept
-`--api-key`, collect secrets, support arbitrary custom base URLs, support
-arbitrary custom model ids, claim concurrent-writer safety, or run default live
-GonkaGate/Pi verification.
+The setup is local-file-only and network-free. It does not mutate shell
+profiles, generate `.env` files, accept `--api-key`, support arbitrary custom
+base URLs, support arbitrary custom model ids, claim concurrent-writer safety,
+or run default live GonkaGate/Pi verification.
 
 Deferred features require the evidence gates in
 [`docs/specs/pi-setup-prd/spec.md`](docs/specs/pi-setup-prd/spec.md) before
@@ -87,6 +96,5 @@ npm run ci
 Product requirements live in
 [`docs/specs/pi-setup-prd/spec.md`](docs/specs/pi-setup-prd/spec.md).
 
-The package is intentionally small. It configures Pi's documented
-`models.json` custom-provider surface and leaves secret storage to Pi or the
-user's shell environment.
+The package is intentionally small. It configures Pi's documented custom
+provider, API-key auth, and default-model settings surfaces.

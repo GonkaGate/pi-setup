@@ -8,9 +8,15 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Readable } from "node:stream";
 import test from "node:test";
 import { renderCliEntrypointError, run } from "../src/cli.js";
-import { GONKAGATE_PROVIDER_ID } from "../src/constants.js";
+import {
+  GONKAGATE_PROVIDER_ID,
+  RECOMMENDED_MODEL_ID,
+} from "../src/constants.js";
+
+const TEST_ENV = { GONKAGATE_API_KEY: "TESTKEY" };
 
 test("CLI writes GonkaGate provider config", async () => {
   const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
@@ -20,7 +26,7 @@ test("CLI writes GonkaGate provider config", async () => {
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--yes"],
-    {},
+    TEST_ENV,
     createTestIo(output, error),
   );
 
@@ -33,6 +39,16 @@ test("CLI writes GonkaGate provider config", async () => {
     providers: Record<string, unknown>;
   };
   assert.equal(typeof config.providers[GONKAGATE_PROVIDER_ID], "object");
+
+  const auth = JSON.parse(await readFile(join(root, "auth.json"), "utf8")) as {
+    gonkagate: { key: string; type: string };
+  };
+  const settings = JSON.parse(
+    await readFile(join(root, "settings.json"), "utf8"),
+  ) as { defaultModel: string; defaultProvider: string };
+  assert.deepEqual(auth.gonkagate, { type: "api_key", key: "TESTKEY" });
+  assert.equal(settings.defaultProvider, GONKAGATE_PROVIDER_ID);
+  assert.equal(settings.defaultModel, RECOMMENDED_MODEL_ID);
 });
 
 test("CLI success output stays configured-not-verified", async () => {
@@ -43,14 +59,13 @@ test("CLI success output stays configured-not-verified", async () => {
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--yes"],
-    {},
+    TEST_ENV,
     createTestIo(output, error),
   );
 
   assert.equal(exitCode, 0);
   assert.equal(error.join(""), "");
   assert.match(output.join(""), /configured, not live verified/);
-  assert.match(output.join(""), /export GONKAGATE_API_KEY=gp-\.\.\./);
   assert.match(output.join(""), /pi --provider gonkagate --model/);
   assert.match(output.join(""), /open \/model or restart Pi/);
   assert.doesNotMatch(output.join(""), /gp-[A-Za-z0-9]{8,}/);
@@ -67,12 +82,12 @@ test("CLI preserves existing config and creates backup before replacement", asyn
   const output: string[] = [];
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--yes"],
-    {},
+    TEST_ENV,
     createTestIo(output, []),
   );
 
   assert.equal(exitCode, 0);
-  assert.match(output.join(""), /Backup:/);
+  assert.match(output.join(""), /Config backup:/);
 
   const config = JSON.parse(await readFile(configPath, "utf8")) as {
     providers: Record<string, unknown>;
@@ -88,7 +103,7 @@ test("CLI emits structured JSON success", async () => {
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--yes", "--json"],
-    {},
+    TEST_ENV,
     createTestIo(output, error),
   );
 
@@ -96,10 +111,12 @@ test("CLI emits structured JSON success", async () => {
   assert.equal(error.join(""), "");
 
   const result = JSON.parse(output.join("")) as {
+    authPath: string;
     changed: boolean;
     configPath: string;
     ok: boolean;
     providerId: string;
+    settingsPath: string;
     status: string;
   };
   assert.equal(result.ok, true);
@@ -107,6 +124,8 @@ test("CLI emits structured JSON success", async () => {
   assert.equal(result.configPath, configPath);
   assert.equal(result.providerId, GONKAGATE_PROVIDER_ID);
   assert.equal(result.changed, true);
+  assert.equal(result.authPath, join(root, "auth.json"));
+  assert.equal(result.settingsPath, join(root, "settings.json"));
 });
 
 test("CLI JSON success includes backup path when one is created", async () => {
@@ -121,7 +140,7 @@ test("CLI JSON success includes backup path when one is created", async () => {
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--yes", "--json"],
-    {},
+    TEST_ENV,
     createTestIo(output, error),
   );
 
@@ -199,7 +218,7 @@ test("CLI dry-run reports already configured without writing", async () => {
   assert.equal(
     await run(
       ["node", "cli", "--config", configPath, "--yes"],
-      {},
+      TEST_ENV,
       createTestIo([], []),
     ),
     0,
@@ -230,7 +249,7 @@ test("CLI JSON mode writes without a confirmation prompt", async () => {
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--json"],
-    {},
+    TEST_ENV,
     createTestIo(output, error),
   );
 
@@ -353,7 +372,12 @@ test("CLI help documents the small setup surface", async () => {
     assert.match(output.join(""), /--dry-run/);
     assert.match(output.join(""), /--json/);
     assert.match(output.join(""), /GONKAGATE_API_KEY/);
-    assert.match(output.join(""), /does not collect or store API keys/);
+    assert.match(output.join(""), /--api-key-stdin/);
+    assert.match(output.join(""), /hidden prompt/);
+    assert.match(
+      output.join(""),
+      /Plain --api-key is intentionally unsupported/,
+    );
   }
 });
 
@@ -386,7 +410,7 @@ test("CLI accepts -y as yes", async () => {
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "-y"],
-    {},
+    TEST_ENV,
     createTestIo(output, error),
   );
 
@@ -435,7 +459,7 @@ test("CLI rejects secret-bearing API key flags before install work", async () =>
   }
 });
 
-test("CLI writes in non-interactive mode by default", async () => {
+test("CLI fails in non-interactive mode without an API key source", async () => {
   const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
   const configPath = join(root, "models.json");
   const output: string[] = [];
@@ -447,15 +471,61 @@ test("CLI writes in non-interactive mode by default", async () => {
     createTestIo(output, error),
   );
 
-  assert.equal(exitCode, 0);
-  assert.equal(error.join(""), "");
-  assert.match(output.join(""), /GonkaGate Pi provider configured/);
-  await access(configPath);
+  assert.equal(exitCode, 1);
+  assert.equal(output.join(""), "");
+  assert.match(error.join(""), /GonkaGate API key required/);
+  await assert.rejects(access(configPath), { code: "ENOENT" });
 });
 
-function createTestIo(output: string[], error: string[]) {
+test("CLI can read the API key from stdin without printing it", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
+  const configPath = join(root, "models.json");
+  const output: string[] = [];
+  const error: string[] = [];
+
+  const exitCode = await run(
+    ["node", "cli", "--config", configPath, "--api-key-stdin", "--yes"],
+    {},
+    createTestIo(output, error, Readable.from(["STDINKEY\n"])),
+  );
+
+  assert.equal(exitCode, 0);
+  assert.equal(error.join(""), "");
+  assert.doesNotMatch(output.join(""), /STDINKEY/);
+
+  const auth = JSON.parse(await readFile(join(root, "auth.json"), "utf8")) as {
+    gonkagate: { key: string };
+  };
+  assert.equal(auth.gonkagate.key, "STDINKEY");
+});
+
+test("CLI rejects non-curated model ids before writing", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
+  const configPath = join(root, "models.json");
+  const output: string[] = [];
+  const error: string[] = [];
+
+  const exitCode = await run(
+    ["node", "cli", "--config", configPath, "--model", "custom/model"],
+    TEST_ENV,
+    createTestIo(output, error),
+  );
+
+  assert.equal(exitCode, 1);
+  assert.equal(output.join(""), "");
+  assert.match(error.join(""), /Unsupported GonkaGate model/);
+  await assert.rejects(access(configPath), { code: "ENOENT" });
+});
+
+function createTestIo(
+  output: string[],
+  error: string[],
+  input: NodeJS.ReadableStream & { readonly isTTY?: boolean } = Readable.from(
+    [],
+  ),
+) {
   return {
-    input: { isTTY: false },
+    input: Object.assign(input, { isTTY: false }),
     output: {
       isTTY: false,
       write(chunk: string) {

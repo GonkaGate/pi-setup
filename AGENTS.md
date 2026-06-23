@@ -22,11 +22,13 @@ Current honest state:
   CLI, tests, docs, CI, release workflows, and a mirrored local skill
 - the CLI writes or dry-runs a managed `providers.gonkagate` entry in
   `~/.pi/agent/models.json`
-- v1 setup remains config-only
-- the CLI does not collect, print, or store GonkaGate API keys
-- the initial auth contract is Pi-native env binding through
-  `$GONKAGATE_API_KEY`
-- this repo does not yet verify live Pi sessions or mutate `auth.json`
+- the CLI reads a GonkaGate API key from `GONKAGATE_API_KEY`,
+  `--api-key-stdin`, or a hidden prompt
+- the CLI writes a Pi-compatible `gonkagate` API-key entry in
+  `~/.pi/agent/auth.json`
+- the CLI sets `defaultProvider` and `defaultModel` in
+  `~/.pi/agent/settings.json`
+- this repo does not yet verify live Pi sessions
 - setup success means `configured`, not live `verified`
 
 If implementation status, package name, config path, provider id, model list,
@@ -38,10 +40,12 @@ The intended minimal happy path is:
 
 1. user runs `npx -y @gonkagate/pi-setup@latest`
 2. installer resolves the Pi `models.json` path
-3. installer preserves unrelated Pi model providers
+3. installer lets the user choose a curated GonkaGate model or uses the
+   recommended model in non-interactive mode
 4. installer upserts the curated GonkaGate provider config
-5. user exports `GONKAGATE_API_KEY=gp-...`
-6. user returns to plain `pi`
+5. installer stores the API key in Pi `auth.json` without printing it
+6. installer sets Pi defaults in `settings.json`
+7. user returns to plain `pi`
 
 ## Fixed Product Invariants
 
@@ -51,16 +55,20 @@ The intended minimal happy path is:
 - the canonical base URL is `https://api.gonkagate.com/v1`
 - the current Pi API type is `openai-completions`
 - the durable Pi custom-model config target is `~/.pi/agent/models.json`
+- the durable Pi auth config target is `~/.pi/agent/auth.json`
+- the durable Pi settings config target is `~/.pi/agent/settings.json`
 - the managed provider key is `providers.gonkagate`
+- the managed auth key is `gonkagate`
 - the managed provider catalog includes every public curated GonkaGate model
 - the CLI must preserve unrelated providers and top-level config values
-- the initial auth binding is exactly `apiKey: "$GONKAGATE_API_KEY"`
+- the provider auth binding remains exactly `apiKey: "$GONKAGATE_API_KEY"`
+- the allowed secret inputs are `GONKAGATE_API_KEY`, `--api-key-stdin`, and a
+  hidden interactive prompt
 - no plain CLI flag may carry the secret
-- the installer must not write directly to `~/.pi/agent/auth.json`
 - shell profile mutation is out of scope
 - `.env` file generation is out of scope
-- arbitrary custom base URLs are out of scope for v1
-- arbitrary custom model ids are out of scope for v1
+- arbitrary custom base URLs are out of scope
+- arbitrary custom model ids are out of scope
 - concurrent-writer safety is not claimed without locking or an equivalent
   design
 - live GonkaGate/Pi session verification is out of scope for the initial
@@ -72,16 +80,18 @@ The intended minimal happy path is:
 - never print a GonkaGate `gp-...` key
 - never accept secrets through plain flags such as `--api-key`
 - never store secrets in repository-local files
-- do not write `auth.json` until that behavior is explicitly designed
 - keep project config commit-safe by default
-- create a backup before replacing an existing `models.json`
-- document restore by copying the generated backup back over `models.json`
+- create a backup before replacing existing `models.json`, `auth.json`, or
+  `settings.json`
+- document restore by copying the generated backup back over the affected file
 
 ## Current Repository Truth
 
 - `src/cli.ts` is the runtime entrypoint
 - `bin/gonkagate-pi.js` is a thin wrapper over `dist/cli.js`
 - `src/config.ts` owns the Pi `models.json` merge behavior
+- `src/install/user-config.ts` owns the Pi `auth.json` and `settings.json`
+  merge behavior
 - `src/constants.ts` owns the GonkaGate provider and curated model contract
 - `src/paths.ts` owns default Pi path resolution
 - `docs/specs/pi-setup-prd/spec.md` is the current product requirements

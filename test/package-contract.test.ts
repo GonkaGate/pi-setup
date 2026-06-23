@@ -56,7 +56,9 @@ test("bin wrapper stays a thin compiled ESM entrypoint", () => {
 test("package does not expose a plain secret flag", () => {
   const source = readText("src/cli.ts");
 
-  assert.doesNotMatch(source, /--api-key/);
+  assert.doesNotMatch(source, /case "--api-key"/);
+  assert.doesNotMatch(source, /--api-key <|--api-key=/);
+  assert.match(source, /--api-key-stdin/);
   assert.match(source, /GONKAGATE_API_KEY/);
 });
 

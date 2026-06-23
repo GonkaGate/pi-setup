@@ -12,10 +12,14 @@ npm run ci
 
 ## Repository Rules
 
-- Keep the first runtime small: update Pi `models.json`, do not manage Pi
-  credentials yet.
-- Preserve unrelated user config when editing `models.json`.
-- Keep `GONKAGATE_API_KEY` as an env binding, not a stored secret.
+- Keep the runtime small: manage Pi `models.json`, `auth.json`, and
+  `settings.json`; do not build a Pi replacement.
+- Preserve unrelated user config when editing Pi config files.
+- Keep `apiKey: "$GONKAGATE_API_KEY"` in the provider config for Pi custom
+  provider compatibility.
+- Allowed secret inputs are `GONKAGATE_API_KEY`, `--api-key-stdin`, and the
+  hidden prompt. Do not add a plain `--api-key` flag.
+- Do not mutate shell profiles or generate `.env` files.
 - Use `.js` relative import specifiers in TypeScript source because production
   runs compiled ESM from `dist/`.
 - Update tests before claiming a new installer behavior.

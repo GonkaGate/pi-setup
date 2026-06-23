@@ -5,6 +5,8 @@ export type InstallErrorCode =
   | "invalid_config"
   | "missing_home"
   | "rollback_failed"
+  | "secret_required"
+  | "unsupported_model"
   | "unexpected_error"
   | "write_failed";
 

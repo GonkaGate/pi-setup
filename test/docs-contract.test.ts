@@ -20,6 +20,10 @@ test("PRD documents the Pi setup product contract", () => {
     /--dry-run/,
     /--json/,
     /Do not accept secrets through plain CLI flags such as `--api-key`/,
+    /--api-key-stdin/,
+    /hidden prompt/,
+    /~\/\.pi\/agent\/auth\.json/,
+    /~\/\.pi\/agent\/settings\.json/,
     /npm run ci/,
   ]);
 });
@@ -58,6 +62,7 @@ test("PRD records the contract source map and setup success semantics", () => {
     /`src\/constants\.ts`: provider id, provider name/,
     /`src\/paths\.ts`: default Pi `models\.json` target/,
     /`AGENTS\.md`: repository-facing product invariants/,
+    /`src\/install\/user-config\.ts`: Pi `auth\.json` and `settings\.json` merge/,
     /`docs\/specs\/pi-setup-prd\/spec\.md`: product requirements/,
     /Current setup success means `configured`/,
     /It does not mean `verified`/,
@@ -65,7 +70,7 @@ test("PRD records the contract source map and setup success semantics", () => {
   ]);
 });
 
-test("public docs keep the fixed config-only Pi contract", () => {
+test("public docs keep the fixed v2 Pi contract", () => {
   for (const path of [
     "README.md",
     "AGENTS.md",
@@ -75,29 +80,33 @@ test("public docs keep the fixed config-only Pi contract", () => {
 
     assertMatchesAll(text, [
       /~\/\.pi\/agent\/models\.json/,
+      /~\/\.pi\/agent\/auth\.json/,
+      /~\/\.pi\/agent\/settings\.json/,
       /providers\.gonkagate/,
       /GONKAGATE_API_KEY/,
       /auth\.json/,
-      /shell profiles|shell profile mutation/,
+      /settings\.json/,
+      /--api-key-stdin/,
+      /hidden\s+(interactive\s+)?prompt/,
+      /shell\s+profiles|shell profile mutation/,
       /\.env/,
-      /arbitrary custom base URLs/,
+      /arbitrary custom\s+base URLs/,
       /arbitrary.*model ids/,
       /backup/i,
-      /config-only/,
       /concurrent-writer safety/,
       /configured/,
       /verified/,
     ]);
+    assert.doesNotMatch(text, /config-only/);
     assertNoDefaultLiveVerificationClaim(text);
   }
 });
 
-test("PRD defines explicit evidence gates for deferred v1 work", () => {
+test("PRD defines explicit evidence gates for deferred work", () => {
   const prd = readText("docs/specs/pi-setup-prd/spec.md");
 
   assertMatchesAll(prd, [
     /Deferred Work Gates/,
-    /Pi auth mutation or `auth\.json` writes: needs verified Pi credential format/,
     /Shell profile mutation: needs supported-shell scope/,
     /`\.env` generation: needs target-file ownership/,
     /Arbitrary custom base URLs or arbitrary custom model ids: need validation/,
@@ -105,7 +114,7 @@ test("PRD defines explicit evidence gates for deferred v1 work", () => {
     /docs must not claim\s+simultaneous setup processes are safe/,
     /Live Pi\/GonkaGate verification: needs an explicit opt-in design/,
     /separates\s+local Pi provider visibility from live GonkaGate API calls/,
-    /The default v1 setup remains config-only, network-free/,
+    /The default setup remains network-free and limited to local Pi config files/,
   ]);
 });
 
@@ -113,7 +122,7 @@ test("PRD documents curated model metadata decisions", () => {
   const prd = readText("docs/specs/pi-setup-prd/spec.md");
 
   assertMatchesAll(prd, [
-    /Current v1 metadata decision/,
+    /Current metadata decision/,
     /`use-pi-default-v1` for `reasoning`, `input`, `contextWindow`, `maxTokens`,/,
     /`cost`, and `compat` in `src\/constants\.ts`/,
     /generated provider config keeps\s+only the currently supported `id` and `name` fields/,

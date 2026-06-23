@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- Add v2 Pi setup flow with curated model selection, safe API-key intake via
+  `GONKAGATE_API_KEY`, `--api-key-stdin`, or a hidden prompt, Pi `auth.json`
+  storage, and Pi default model settings.
+
+### Security
+
+- Keep plain `--api-key` unsupported and redact accidental `gp-...` keys from
+  user-facing error output.
+
 ## [0.2.2](https://github.com/GonkaGate/pi-setup/compare/v0.2.1...v0.2.2) (2026-06-23)
 
 

@@ -2,14 +2,96 @@
 
 ## Overview
 
-This plan takes `@gonkagate/pi-setup` from the current truthful scaffold to a
-production-quality config-only installer in the same engineering style as
-`@gonkagate/opencode-setup`, while preserving the Pi-specific product contract.
+This plan originally took `@gonkagate/pi-setup` from the scaffold to a
+production-quality config-only installer. The active product contract changed
+to v2 on 2026-06-23: setup now owns a small Pi-native auth/default-model flow in
+addition to the provider catalog.
 
-The v1 runtime configures Pi by managing only
-`~/.pi/agent/models.json -> providers.gonkagate`. It must not collect secrets,
-write `auth.json`, mutate shell profiles, generate `.env`, expose arbitrary
-base URLs, expose arbitrary model ids, or claim live GonkaGate/Pi verification.
+The v2 runtime configures Pi by managing:
+
+- `~/.pi/agent/models.json -> providers.gonkagate`
+- `~/.pi/agent/auth.json -> gonkagate`
+- `~/.pi/agent/settings.json -> defaultProvider/defaultModel`
+
+It must not print keys, accept plain `--api-key`, mutate shell profiles,
+generate `.env`, expose arbitrary base URLs, expose arbitrary model ids, or
+claim live GonkaGate/Pi verification.
+
+## V2 Addendum: Pi Auth And Default Model Setup
+
+### V2 Task 01: Approve and document the v2 scope
+
+Status: [x] Done
+
+**Description:** Replace the v1 config-only contract with a small v2 contract
+that uses Pi-native `models.json`, `auth.json`, and `settings.json` while
+preserving the existing prohibited surfaces.
+
+**Acceptance criteria:**
+
+- [x] Docs describe API-key input through `GONKAGATE_API_KEY`,
+      `--api-key-stdin`, or a hidden prompt.
+- [x] Docs describe writing Pi `auth.json` and `settings.json`.
+- [x] Docs still prohibit plain `--api-key`, shell profile mutation, `.env`
+      generation, arbitrary custom base URLs, arbitrary custom model ids, and
+      default live verification.
+
+**Verification:**
+
+- [x] `rtk npm run test`
+
+**Evidence:** `rtk npm run test` passed with docs and skill contract coverage
+after the v2 docs update.
+
+### V2 Task 02: Implement safe secret intake and Pi-native writes
+
+Status: [x] Done
+
+**Description:** Add the smallest v2 runtime flow: curated model selection,
+safe key intake, managed `auth.json` write, and managed `settings.json` write.
+
+**Acceptance criteria:**
+
+- [x] `--api-key` and `--api-key=<value>` stay rejected before writes.
+- [x] `GONKAGATE_API_KEY` can configure Pi without printing the key.
+- [x] `--api-key-stdin` can configure Pi without printing the key.
+- [x] Non-interactive setup without a key source fails before writing.
+- [x] Non-curated model ids fail before writing.
+- [x] Existing managed files are backed up before replacement.
+
+**Verification:**
+
+- [x] `rtk npm run test`
+
+**Evidence:** CLI tests cover env key setup, stdin key setup, no-key failure,
+invalid model rejection, JSON output, backups, and redaction.
+
+### V2 Task 03: Final readiness gate
+
+Status: [x] Done
+
+**Acceptance criteria:**
+
+- [x] `rtk npm run ci`
+- [x] packaged-bin smoke for help, version, and temp-config JSON setup
+- [x] no docs/contract drift after formatting
+
+**Verification:**
+
+- [x] `rtk npm run ci`
+- [x] `rtk node -e "<packaged-bin smoke>"`
+
+**Evidence:** `rtk npm run ci` passed typecheck, build, 95 tests, Prettier
+check, and publint. Packaged-bin smoke verified `--help`, `--version`, JSON
+setup against a temp config path, creation of `models.json`, `auth.json`, and
+`settings.json`, and no secret leakage in stdout.
+
+## Historical V1 Baseline
+
+The sections below are retained as the original v1 implementation history.
+They are superseded for active work by the v2 addendum above wherever they
+mention config-only setup, no secret intake, no `auth.json` writes, or no
+settings writes.
 
 ## Architecture / Quality Bar
 
@@ -1016,16 +1098,17 @@ Status: [ ] Not started
 
 **Description:** After implementation and tests pass, update public and internal
 docs so they describe the real runtime, not the scaffold, while preserving
-explicit v1 limits.
+explicit current limits.
 
 **Acceptance criteria:**
 
 - [ ] README explains what the tool changes, target path, backup restore, dry-run,
-      JSON, `--config`, and auth env binding.
-- [ ] `docs/how-it-works.md` explains the shipped config-only install flow,
-      ownership model, rerun behavior, and configured-vs-verified semantics.
-- [ ] `docs/security.md` explains secret non-ownership, no `auth.json`, no shell
-      mutation, backup/restore behavior, redaction, and network-free setup.
+      JSON, `--config`, and auth inputs.
+- [ ] `docs/how-it-works.md` explains the shipped v2 install flow, ownership
+      model, rerun behavior, and configured-vs-verified semantics.
+- [ ] `docs/security.md` explains allowed secret inputs, Pi `auth.json`
+      ownership, no shell mutation, backup/restore behavior, redaction, and
+      network-free setup.
 - [ ] `docs/troubleshooting.md` exists before public release if recurring user
       recovery paths are documented outside README.
 - [ ] `docs/model-validation.md` or the PRD records the curated model metadata
@@ -1036,8 +1119,8 @@ explicit v1 limits.
       behavior.
 - [ ] CHANGELOG records meaningful user-facing behavior changes.
 - [ ] Mirrored skills stay aligned.
-- [ ] Docs still say live Pi/GonkaGate verification is deferred unless separately
-      implemented.
+- [ ] Docs still say live Pi/GonkaGate verification is deferred unless
+      separately implemented.
 
 **Verification:**
 
@@ -1100,13 +1183,13 @@ secrets or trusted publishing are configured.
 
 **Estimated scope:** Small
 
-### Task 26: Record explicit post-v1 verification design
+### Task 26: Record explicit post-v2 verification design
 
 Status: [ ] Not started
 
 **Description:** Add a deferred design note for any future live Pi/GonkaGate
-verification. This is not implementation work for v1; it prevents accidental
-default live calls from slipping into the config-only installer.
+verification. This is not current implementation work; it prevents accidental
+default live calls from slipping into the local-file setup.
 
 **Acceptance criteria:**
 
@@ -1114,12 +1197,12 @@ default live calls from slipping into the config-only installer.
 - [ ] Future verification distinguishes local Pi provider visibility from live
       GonkaGate API calls.
 - [ ] Future verification never prints or stores a raw `gp-...` key.
-- [ ] v1 setup remains network-free and config-only.
+- [ ] default setup remains network-free and local-file-only.
 - [ ] Docs and tests prevent default live verification claims.
 
 **Verification:**
 
-- [ ] Docs contract test asserts v1 does not contact GonkaGate.
+- [ ] Docs contract test asserts default setup does not contact GonkaGate.
 - [ ] `rtk npm run ci`
 
 **Dependencies:** Task 24

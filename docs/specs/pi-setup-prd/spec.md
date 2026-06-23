@@ -19,9 +19,10 @@ Recommended public flow:
 npx -y @gonkagate/pi-setup@latest
 ```
 
-The first supported runtime should stay intentionally small: write a curated
-GonkaGate provider entry into Pi's documented custom-model config file and
-leave credential storage to Pi or the user's environment.
+The v2 runtime stays intentionally small: write a curated GonkaGate provider
+entry, store the GonkaGate API key in Pi's auth file, and set Pi's default
+provider/model. It does not mutate shell profiles, generate `.env` files, or
+run live verification by default.
 
 ## Problem
 
@@ -30,7 +31,7 @@ new GonkaGate user should not need to know Pi's provider schema, model list,
 base URL, API type, or safe API-key handling pattern before starting.
 
 The utility should turn that setup into a short guided flow while preserving
-Pi's own credential and model-switching behavior.
+Pi's own config files and model-switching behavior.
 
 ## Users
 
@@ -43,37 +44,34 @@ Pi's own credential and model-switching behavior.
 - Configure Pi to expose GonkaGate as provider id `gonkagate`.
 - Preserve unrelated Pi custom providers and top-level config.
 - Use the canonical GonkaGate base URL `https://api.gonkagate.com/v1`.
-- Use Pi's OpenAI-compatible API type `openai-completions` for v1.
+- Use Pi's OpenAI-compatible API type `openai-completions`.
 - Install every public curated GonkaGate model into the provider catalog.
 - Keep the recommended public path as one `npx` command.
-- Avoid collecting or storing secrets in v1.
+- Read secrets only from `GONKAGATE_API_KEY`, `--api-key-stdin`, or a hidden
+  prompt.
+- Store the key only in Pi's `~/.pi/agent/auth.json`.
+- Set Pi's default provider and model in `~/.pi/agent/settings.json`.
 - Provide dry-run and JSON output for automation.
 - Keep CI, package contract checks, and docs aligned with shipped behavior.
 
 ## Non-Goals
 
 - Do not implement a full Pi replacement.
-- Do not write `~/.pi/agent/auth.json` in v1.
 - Do not mutate shell profiles.
 - Do not generate `.env` files.
-- Do not write `.pi/settings.json` or `~/.pi/agent/settings.json` in v1.
-- Do not set Pi's default provider or default model in v1.
 - Do not accept secrets through plain CLI flags such as `--api-key`.
-- Do not support arbitrary custom base URLs in v1.
-- Do not support arbitrary user-provided model ids in v1.
+- Do not support arbitrary custom base URLs.
+- Do not support arbitrary user-provided model ids.
 - Do not claim live GonkaGate/Pi session verification until implemented.
-- Do not claim concurrent-writer safety for simultaneous setup processes in v1
+- Do not claim concurrent-writer safety for simultaneous setup processes
   unless locking or atomic replacement is explicitly implemented.
 - Do not implement a Pi extension or OAuth flow unless later requirements make
   `models.json` insufficient.
 
 ## Deferred Work Gates
 
-These features stay out of v1 until the listed evidence exists:
+These features stay out of the current runtime until the listed evidence exists:
 
-- Pi auth mutation or `auth.json` writes: needs verified Pi credential format,
-  explicit secret ownership, rollback behavior, redaction tests, and user
-  consent design.
 - Shell profile mutation: needs supported-shell scope, idempotent edit and
   restore behavior, cross-platform tests, and explicit user consent.
 - `.env` generation: needs target-file ownership, git-safety policy, restore
@@ -87,8 +85,8 @@ These features stay out of v1 until the listed evidence exists:
   local Pi provider visibility from live GonkaGate API calls, avoids printing or
   storing raw `gp-...` keys, and records user consent before any network check.
 
-The default v1 setup remains config-only, network-free, and limited to
-`providers.gonkagate` in `~/.pi/agent/models.json`.
+The default setup remains network-free and limited to local Pi config files:
+`models.json`, `auth.json`, and `settings.json`.
 
 ## Current Pi Integration Contract
 
@@ -102,15 +100,17 @@ Current behavior is owned by these files:
   type, auth env binding, recommended model, and curated model catalog.
 - `src/paths.ts`: default Pi `models.json` target and custom config path
   resolution.
+- `src/install/user-config.ts`: Pi `auth.json` and `settings.json` merge
+  behavior.
 - `AGENTS.md`: repository-facing product invariants, security invariants,
   current repository truth, and change discipline.
-- `docs/specs/pi-setup-prd/spec.md`: product requirements, v1 non-goals,
+- `docs/specs/pi-setup-prd/spec.md`: product requirements, current non-goals,
   success semantics, deferred work, and release readiness criteria.
 
-Current setup success means `configured`: the managed provider entry exists or
-already matches at `providers.gonkagate`. It does not mean `verified`; live
-Pi/GonkaGate verification is deferred future work and must stay opt-in until a
-separate design approves it.
+Current setup success means `configured`: the managed provider, Pi auth entry,
+and Pi default settings exist or already match. It does not mean `verified`;
+live Pi/GonkaGate verification is deferred future work and must stay opt-in
+until a separate design approves it.
 
 Managed config target:
 
@@ -122,6 +122,21 @@ Managed provider key:
 
 ```text
 providers.gonkagate
+```
+
+Managed auth key:
+
+```text
+gonkagate
+```
+
+Managed settings:
+
+```json
+{
+  "defaultProvider": "gonkagate",
+  "defaultModel": "moonshotai/Kimi-K2.6"
+}
 ```
 
 Managed provider config:
@@ -179,7 +194,7 @@ The decision may be "use Pi defaults for v1", but it must be intentional and
 documented. Do not silently rely on defaults for model behavior that affects
 tools, thinking, context limits, usage reporting, or compatibility.
 
-Current v1 metadata decision: every curated model records
+Current metadata decision: every curated model records
 `use-pi-default-v1` for `reasoning`, `input`, `contextWindow`, `maxTokens`,
 `cost`, and `compat` in `src/constants.ts`. The generated provider config keeps
 only the currently supported `id` and `name` fields until product requirements
@@ -197,22 +212,23 @@ npx -y @gonkagate/pi-setup@latest
 
 Expected behavior:
 
-1. CLI resolves the default Pi models config path.
-2. CLI explains that it will add or update `providers.gonkagate`.
-3. CLI writes the managed GonkaGate provider without a second prompt.
-4. CLI preserves unrelated Pi config.
-5. CLI creates a backup before replacing an existing config file.
-6. CLI prints the next commands:
+1. CLI resolves the default Pi config directory.
+2. CLI lets the user choose a curated GonkaGate model when interactive.
+3. CLI reads the API key from `GONKAGATE_API_KEY`, `--api-key-stdin`, or a
+   hidden prompt.
+4. CLI writes the managed GonkaGate provider.
+5. CLI writes the `gonkagate` auth entry.
+6. CLI sets Pi defaults to GonkaGate and the selected model.
+7. CLI preserves unrelated Pi config and creates backups before replacing
+   existing files.
+8. CLI prints the next command:
 
 ```bash
-export GONKAGATE_API_KEY=gp-...
 pi --provider gonkagate --model moonshotai/Kimi-K2.6
 ```
 
-If `GONKAGATE_API_KEY` is not available to Pi, setup may still succeed as a
-config write, but the GonkaGate models may remain unavailable inside Pi until
-auth is configured. The CLI must not describe config-write success as proof of
-live model usability.
+The CLI must not describe local config-write success as proof of live model
+usability.
 
 If Pi is already running while setup changes `models.json`, user guidance must
 tell the user to open `/model` or restart Pi before assuming the new provider
@@ -230,7 +246,8 @@ npx -y @gonkagate/pi-setup@latest --yes
 Expected behavior:
 
 - no prompt
-- same config write semantics as default setup
+- uses the recommended model unless `--model <id>` is provided
+- requires `GONKAGATE_API_KEY` or `--api-key-stdin` for non-interactive writes
 - `--yes` is accepted for compatibility with existing docs and scripts
 - non-zero exit code on parse/write failure
 
@@ -259,7 +276,8 @@ npx -y @gonkagate/pi-setup@latest --json
 Expected behavior:
 
 - output is valid JSON
-- JSON includes config path, changed flag, backup path when present, and model ids
+- JSON includes config/auth/settings paths, changed flag, backup paths when
+  present, selected model id, and model ids
 - no human-only text is mixed into stdout
 
 ## Functional Requirements
@@ -277,7 +295,7 @@ Expected behavior:
 - Existing config must be valid JSON object.
 - Non-object JSON must fail with a clear error.
 - Invalid JSON must fail without replacing the file.
-- v1 does not need JSONC support unless Pi's documented file format requires
+- The current runtime does not need JSONC support unless Pi's documented file format requires
   comments later.
 
 ### Merge Behavior
@@ -290,7 +308,7 @@ Expected behavior:
 
 ### Backup Behavior
 
-- If the target file exists and content changes, copy it to a timestamped
+- If a managed file exists and content changes, copy it to a timestamped
   sibling backup before writing.
 - If the file does not exist, no backup is needed.
 - If the merged content is identical, do not rewrite or create a backup.
@@ -305,6 +323,8 @@ Expected behavior:
 - Public docs must describe how to restore from a backup.
 - Restore from a backup by copying the generated `models.json.backup-*` file
   back over `~/.pi/agent/models.json`.
+- Restore auth/settings by copying the matching `auth.json.backup-*` or
+  `settings.json.backup-*` file back over the affected file.
 - Atomic replacement is preferred before first public release; if omitted, the
   release notes must not claim crash-safe writes.
 
@@ -315,7 +335,8 @@ The CLI has two levels of success:
 1. `configured`: the GonkaGate provider entry was written or already matched.
 2. `verified`: Pi itself proves that the provider/model is available.
 
-v1 may claim only `configured` unless effective Pi verification is implemented.
+The current runtime may claim only `configured` unless effective Pi verification
+is implemented.
 Dry-run may claim only `would_change` or `already_configured`.
 
 ### Error Reporting
@@ -339,6 +360,8 @@ implemented.
 Required flags:
 
 - `--yes`, `-y`
+- `--model <id>`
+- `--api-key-stdin`
 - `--config <path>`
 - `--dry-run`
 - `--json`
@@ -353,15 +376,13 @@ Prohibited flags:
 ## Security Requirements
 
 - Never print a GonkaGate `gp-...` key.
-- Never ask for a key in v1.
+- Never ask for a key outside the hidden prompt.
 - Never write repository-local secrets.
-- Never write `~/.pi/agent/auth.json` in v1.
+- Store secrets only in Pi `~/.pi/agent/auth.json`.
 - Never mutate shell profile files.
 - Never generate `.env` files.
 - Never perform telemetry or analytics in the setup runtime.
-- Never contact GonkaGate during config-only setup.
-- Keep docs explicit that users should provide `GONKAGATE_API_KEY` themselves
-  or use Pi's own credential flow.
+- Never contact GonkaGate during default setup.
 - Treat Pi's own `--api-key` flag, if present, as a Pi capability. This utility
   must not expose or recommend an equivalent secret-bearing flag.
 
@@ -400,7 +421,7 @@ Public docs must cover:
 
 - what the tool changes
 - where Pi config is written
-- how to provide `GONKAGATE_API_KEY`
+- how to provide the API key safely
 - how to run dry-run mode
 - how to use a custom config path
 - what is intentionally out of scope
@@ -439,7 +460,7 @@ The initial tests must prove:
 - path resolution
 - CLI write path
 - backup creation
-- default non-interactive write behavior
+- non-interactive key-source behavior
 - package metadata contract
 - mirrored skill integrity
 
@@ -457,20 +478,8 @@ The initial tests must prove:
 
 ## Future Capabilities
 
-These are not v1 requirements, but should be considered as later task groups.
-
-### Secret Storage
-
-Possible future behavior:
-
-- hidden prompt for `gp-...`
-- `GONKAGATE_API_KEY`
-- `--api-key-stdin`
-- optional write into Pi's credential storage only if the Pi auth format and
-  concurrency behavior are explicitly verified
-
-This should not be implemented until the auth ownership and rollback behavior
-are designed.
+These are not current requirements, but should be considered as later task
+groups.
 
 ### Pi Presence Check
 
@@ -491,10 +500,10 @@ Possible future behavior:
 
 ### Model Picker
 
-Possible future behavior:
+Current behavior:
 
 - show curated model list interactively
-- let user choose default command guidance
+- let user choose Pi's default GonkaGate model
 - keep every curated model in the provider catalog
 
 ### Pi Extension
@@ -506,31 +515,33 @@ Possible future behavior:
 
 ## Open Questions
 
-- Should v1 stay config-only for the first public release, or should it block
-  release until Pi presence detection is implemented?
-- Do we want to support writing credentials through Pi's own `/login` flow, or
-  should setup continue to avoid credential ownership entirely?
+- Should release block until Pi presence detection is implemented?
+- Do we want to support Pi's own `/login` flow later, or is direct
+  `auth.json` ownership enough for GonkaGate v2?
 - What Pi versions should be considered supported once we add a version check?
-- Should the CLI ever set Pi default provider/model, or should it only install
-  the provider catalog and print the next `pi --provider ... --model ...`
-  command?
 - Do we need JSONC preservation if real Pi users commonly hand-edit
   `models.json` with comments?
 - Should first public release require atomic replacement, or is backup-first
-  direct writing acceptable for v1?
+  direct writing acceptable?
 - Should curated model entries include explicit `reasoning`, `contextWindow`,
   `maxTokens`, `cost`, and `compat` metadata before publication?
 
-## Acceptance Criteria For V1
+## Acceptance Criteria For V2
 
 - `npx -y @gonkagate/pi-setup@latest` creates or updates
   `~/.pi/agent/models.json`.
+- The setup writes only the `gonkagate` API-key entry in
+  `~/.pi/agent/auth.json`.
+- The setup sets `defaultProvider` and `defaultModel` in
+  `~/.pi/agent/settings.json`.
 - Existing unrelated providers remain unchanged.
-- Existing target config receives a backup before replacement.
+- Existing unrelated auth/settings entries remain unchanged.
+- Existing managed files receive backups before replacement.
 - Re-running against an already managed config is idempotent.
 - `--dry-run` performs no writes.
 - `--json` emits valid machine-readable output.
-- The tool never accepts or stores a secret.
+- The tool never accepts a secret through plain `--api-key`.
+- The tool never prints a raw `gp-...` key.
 - The tool does not claim live Pi usability unless live verification is
   implemented.
 - Docs describe the exact user flow and security model.
@@ -553,4 +564,5 @@ Use this PRD to create implementation tasks in this rough order:
 10. Add CLI integration tests.
 11. Add CI and package validation.
 12. Add release and publish workflows.
-13. Reassess open questions before adding secret storage or live verification.
+13. Reassess open questions before adding live verification or Pi extension
+    packaging.

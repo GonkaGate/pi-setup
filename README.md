@@ -4,7 +4,7 @@ Configure Pi Coding Agent to use GonkaGate as an OpenAI-compatible custom
 provider with one `npx` command.
 
 ```bash
-npx -y @gonkagate/pi-setup@latest --yes
+npx -y @gonkagate/pi-setup@latest
 ```
 
 ![Package](https://img.shields.io/badge/package-%40gonkagate%2Fpi--setup-6E63FF?style=flat-square)
@@ -39,7 +39,7 @@ GonkaGate may still need a valid user-provided key.
 ## Quick Start
 
 ```bash
-npx -y @gonkagate/pi-setup@latest --yes
+npx -y @gonkagate/pi-setup@latest
 export GONKAGATE_API_KEY=gp-...
 pi --provider gonkagate --model moonshotai/Kimi-K2.6
 ```
@@ -53,7 +53,7 @@ npx -y @gonkagate/pi-setup@latest --dry-run
 Use a custom config path during testing:
 
 ```bash
-npx -y @gonkagate/pi-setup@latest --config ./models.json --yes
+npx -y @gonkagate/pi-setup@latest --config ./models.json
 ```
 
 Restore from a backup by copying the generated `models.json.backup-*` file back

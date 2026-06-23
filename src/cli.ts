@@ -1,6 +1,5 @@
 import { createRequire } from "node:module";
 import process from "node:process";
-import { createInterface } from "node:readline/promises";
 import {
   BIN_NAME,
   GONKAGATE_API_KEY_ENV,
@@ -9,7 +8,6 @@ import {
 } from "./constants.js";
 import { isEntrypointInvocation } from "./entrypoint.js";
 import {
-  InstallError,
   toFailureResult,
   type InstallFailureResult,
 } from "./install/errors.js";
@@ -26,11 +24,9 @@ interface CliOptions {
   readonly help: boolean;
   readonly json: boolean;
   readonly version: boolean;
-  readonly yes: boolean;
 }
 
 interface CliIo {
-  readonly input: NodeJS.ReadableStream & { readonly isTTY?: boolean };
   readonly output: NodeJS.WritableStream & { readonly isTTY?: boolean };
   readonly error: NodeJS.WritableStream;
 }
@@ -45,7 +41,6 @@ class CliError extends Error {
 }
 
 const defaultIo: CliIo = {
-  input: process.stdin,
   output: process.stdout,
   error: process.stderr,
 };
@@ -87,22 +82,6 @@ export async function run(
   try {
     const configPath = resolveInstallPath(options.configPath, env);
 
-    if (options.json && !options.dryRun && !options.yes) {
-      throw new InstallError(
-        "confirmation_required",
-        "Pass --yes or --dry-run when using --json.",
-      );
-    }
-
-    if (!options.dryRun && !options.yes) {
-      const confirmed = await confirmWrite(configPath, io);
-
-      if (!confirmed) {
-        io.error.write(`Aborted. Pass --yes to write ${configPath}.\n`);
-        return 1;
-      }
-    }
-
     const result = await installGonkagateProvider(configPath, options.dryRun);
 
     if (options.json) {
@@ -139,23 +118,6 @@ export function renderCliEntrypointError(error: unknown): {
   return { exitCode: 1, stderrText: renderFailure(toFailureResult(error)) };
 }
 
-async function confirmWrite(configPath: string, io: CliIo): Promise<boolean> {
-  if (io.input.isTTY !== true || io.output.isTTY !== true) {
-    return false;
-  }
-
-  const readline = createInterface({ input: io.input, output: io.output });
-
-  try {
-    const answer = await readline.question(
-      `Write GonkaGate provider config to ${configPath}? [y/N] `,
-    );
-    return /^(y|yes)$/i.test(answer.trim());
-  } finally {
-    readline.close();
-  }
-}
-
 function parseArgs(args: readonly string[]): CliOptions {
   const secretFlag = `--api${"-key"}`;
   const options = {
@@ -163,7 +125,6 @@ function parseArgs(args: readonly string[]): CliOptions {
     help: false,
     json: false,
     version: false,
-    yes: false,
   };
   let configPath: string | undefined;
 
@@ -195,7 +156,6 @@ function parseArgs(args: readonly string[]): CliOptions {
         break;
       case "--yes":
       case "-y":
-        options.yes = true;
         break;
       default:
         throw new CliError(`Unknown option: ${arg}`);
@@ -226,7 +186,7 @@ Usage:
   ${BIN_NAME} [--yes] [--config <path>] [--dry-run] [--json]
 
 Options:
-  --yes, -y          Write without prompting
+  --yes, -y          Accepted for compatibility
   --config <path>   Pi models.json path (default: ~/.pi/agent/models.json)
   --dry-run         Preview the managed config without writing
   --json            Print machine-readable result

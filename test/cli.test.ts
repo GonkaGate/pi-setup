@@ -222,7 +222,7 @@ test("CLI dry-run reports already configured without writing", async () => {
   assert.equal(result.status, "already_configured");
 });
 
-test("CLI JSON mode requires yes or dry-run instead of prompting", async () => {
+test("CLI JSON mode writes without a confirmation prompt", async () => {
   const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
   const configPath = join(root, "models.json");
   const output: string[] = [];
@@ -234,18 +234,18 @@ test("CLI JSON mode requires yes or dry-run instead of prompting", async () => {
     createTestIo(output, error),
   );
 
-  assert.equal(exitCode, 1);
+  assert.equal(exitCode, 0);
   assert.equal(error.join(""), "");
 
   const result = JSON.parse(output.join("")) as {
-    errorCode: string;
+    changed: boolean;
     ok: boolean;
     status: string;
   };
-  assert.equal(result.ok, false);
-  assert.equal(result.status, "failed");
-  assert.equal(result.errorCode, "confirmation_required");
-  await assert.rejects(access(configPath), { code: "ENOENT" });
+  assert.equal(result.ok, true);
+  assert.equal(result.status, "configured");
+  assert.equal(result.changed, true);
+  await access(configPath);
 });
 
 test("CLI emits structured JSON failure", async () => {
@@ -435,19 +435,22 @@ test("CLI rejects secret-bearing API key flags before install work", async () =>
   }
 });
 
-test("CLI requires explicit confirmation in non-interactive mode", async () => {
+test("CLI writes in non-interactive mode by default", async () => {
+  const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
+  const configPath = join(root, "models.json");
   const output: string[] = [];
   const error: string[] = [];
 
   const exitCode = await run(
-    ["node", "cli"],
-    { HOME: "/tmp/user" },
+    ["node", "cli", "--config", configPath],
+    {},
     createTestIo(output, error),
   );
 
-  assert.equal(exitCode, 1);
-  assert.equal(output.join(""), "");
-  assert.match(error.join(""), /Pass --yes/);
+  assert.equal(exitCode, 0);
+  assert.equal(error.join(""), "");
+  assert.match(output.join(""), /GonkaGate Pi provider configured/);
+  await access(configPath);
 });
 
 function createTestIo(output: string[], error: string[]) {

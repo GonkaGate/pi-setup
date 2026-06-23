@@ -2,7 +2,6 @@ import { redactSecrets } from "./redact.js";
 
 export type InstallErrorCode =
   | "backup_failed"
-  | "confirmation_required"
   | "invalid_config"
   | "missing_home"
   | "rollback_failed"

@@ -36,7 +36,7 @@ test("README keeps the SEO header aligned with sibling setup repos", () => {
   assertMatchesAll(readme, [
     /^# @gonkagate\/pi-setup/m,
     /Configure Pi Coding Agent to use GonkaGate as an OpenAI-compatible custom\s+provider with one `npx` command\./,
-    /npx -y @gonkagate\/pi-setup@latest --yes/,
+    /npx -y @gonkagate\/pi-setup@latest/,
     /img\.shields\.io\/badge\/package-%40gonkagate%2Fpi--setup/,
     /img\.shields\.io\/badge\/node-%3E%3D22\.14\.0/,
     /img\.shields\.io\/badge\/Pi%20Coding%20Agent-custom%20provider/,

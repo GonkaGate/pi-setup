@@ -16,7 +16,7 @@ use GonkaGate as a custom model provider.
 Recommended public flow:
 
 ```bash
-npx -y @gonkagate/pi-setup@latest --yes
+npx -y @gonkagate/pi-setup@latest
 ```
 
 The first supported runtime should stay intentionally small: write a curated
@@ -199,11 +199,10 @@ Expected behavior:
 
 1. CLI resolves the default Pi models config path.
 2. CLI explains that it will add or update `providers.gonkagate`.
-3. CLI asks before writing when running interactively.
+3. CLI writes the managed GonkaGate provider without a second prompt.
 4. CLI preserves unrelated Pi config.
 5. CLI creates a backup before replacing an existing config file.
-6. CLI writes the managed GonkaGate provider.
-7. CLI prints the next commands:
+6. CLI prints the next commands:
 
 ```bash
 export GONKAGATE_API_KEY=gp-...
@@ -220,7 +219,7 @@ tell the user to open `/model` or restart Pi before assuming the new provider
 is visible in the active session. Current Pi docs say the file reloads when
 `/model` is opened; this should be rechecked before claiming stronger behavior.
 
-### Non-Interactive Setup
+### Compatibility Setup
 
 User runs:
 
@@ -231,7 +230,8 @@ npx -y @gonkagate/pi-setup@latest --yes
 Expected behavior:
 
 - no prompt
-- same config write semantics as interactive setup
+- same config write semantics as default setup
+- `--yes` is accepted for compatibility with existing docs and scripts
 - non-zero exit code on parse/write failure
 
 ### Dry Run
@@ -253,7 +253,7 @@ Expected behavior:
 User runs:
 
 ```bash
-npx -y @gonkagate/pi-setup@latest --yes --json
+npx -y @gonkagate/pi-setup@latest --json
 ```
 
 Expected behavior:
@@ -324,7 +324,6 @@ Errors must be concise and actionable for:
 
 - unknown flags
 - missing flag values
-- non-interactive execution without `--yes` or `--dry-run`
 - invalid JSON
 - non-object JSON
 - missing home directory
@@ -440,7 +439,7 @@ The initial tests must prove:
 - path resolution
 - CLI write path
 - backup creation
-- non-interactive confirmation behavior
+- default non-interactive write behavior
 - package metadata contract
 - mirrored skill integrity
 
@@ -524,7 +523,7 @@ Possible future behavior:
 
 ## Acceptance Criteria For V1
 
-- `npx -y @gonkagate/pi-setup@latest --yes` creates or updates
+- `npx -y @gonkagate/pi-setup@latest` creates or updates
   `~/.pi/agent/models.json`.
 - Existing unrelated providers remain unchanged.
 - Existing target config receives a backup before replacement.

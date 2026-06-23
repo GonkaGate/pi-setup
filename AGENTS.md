@@ -13,7 +13,7 @@ provider.
 Recommended public flow:
 
 ```bash
-npx -y @gonkagate/pi-setup@latest --yes
+npx -y @gonkagate/pi-setup@latest
 ```
 
 Current honest state:
@@ -36,7 +36,7 @@ or secret-handling behavior changes, update this file in the same change.
 
 The intended minimal happy path is:
 
-1. user runs `npx -y @gonkagate/pi-setup@latest --yes`
+1. user runs `npx -y @gonkagate/pi-setup@latest`
 2. installer resolves the Pi `models.json` path
 3. installer preserves unrelated Pi model providers
 4. installer upserts the curated GonkaGate provider config
@@ -46,7 +46,7 @@ The intended minimal happy path is:
 ## Fixed Product Invariants
 
 - the npm package is `@gonkagate/pi-setup`
-- the intended public npm entrypoint is `npx -y @gonkagate/pi-setup@latest --yes`
+- the intended public npm entrypoint is `npx -y @gonkagate/pi-setup@latest`
 - the stable provider id is `gonkagate`
 - the canonical base URL is `https://api.gonkagate.com/v1`
 - the current Pi API type is `openai-completions`

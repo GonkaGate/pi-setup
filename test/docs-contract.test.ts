@@ -95,6 +95,9 @@ test("public docs keep the fixed v2 Pi contract", () => {
       /arbitrary.*model ids.*\/v1\/models/,
       /backup/i,
       /concurrent-writer safety/,
+      /Conventional Commits/,
+      /feat: \.\.\./,
+      /fix: \.\.\./,
       /configured/,
       /verified/,
     ]);

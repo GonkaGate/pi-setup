@@ -137,6 +137,18 @@ When behavior changes:
 - update tests under `test/`
 - keep `.agents/skills/` and `.claude/skills/` mirrored
 
+## Release Commit Naming
+
+Release Please opens release PRs only from Conventional Commits on `main`.
+
+- use `feat: ...` for user-facing setup behavior that should publish a minor
+  npm release
+- use `fix: ...` for user-facing bug fixes that should publish a patch npm
+  release
+- use `docs:`, `test:`, or `chore:` only when no npm release should be opened
+- when squash-merging, make the squash title itself conventional; do not use
+  `[codex] ...` or a plain English title for releasable changes
+
 ## Validation
 
 Current local validation baseline:

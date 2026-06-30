@@ -40,6 +40,8 @@ Rules:
 - do not add arbitrary custom base URLs or model ids outside `/v1/models`
 - do not claim default live GonkaGate/Pi verification
 - keep TypeScript imports runtime-correct for compiled ESM
+- use Conventional Commit names for releasable changes (`feat:` or `fix:`);
+  release-please ignores `[codex] ...` and plain commit titles
 - run `npm run ci` before calling the change ready
 
 Use the smallest useful implementation. Pi already owns credential storage,

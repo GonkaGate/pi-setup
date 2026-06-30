@@ -41,6 +41,9 @@ test("repo skill documents the current Pi setup contract", () => {
   assert.match(skill, /\.env/);
   assert.match(skill, /arbitrary custom base URLs/);
   assert.match(skill, /model ids outside `\/v1\/models`/);
+  assert.match(skill, /Conventional Commit/);
+  assert.match(skill, /feat:/);
+  assert.match(skill, /fix:/);
   assert.match(skill, /default live GonkaGate\/Pi verification/);
   assert.match(skill, /never add a plain `--api-key` flag/);
   assert.doesNotMatch(skill, /opencode/);

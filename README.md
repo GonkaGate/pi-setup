@@ -99,6 +99,11 @@ npm install
 npm run ci
 ```
 
+Release Please opens release PRs only from Conventional Commits on `main`.
+Use `feat: ...` for user-facing setup behavior and `fix: ...` for user-facing
+bug fixes. When squash-merging, make the squash title conventional;
+`[codex] ...` and plain titles will not trigger an npm release.
+
 Product requirements live in
 [`docs/specs/pi-setup-prd/spec.md`](docs/specs/pi-setup-prd/spec.md).
 

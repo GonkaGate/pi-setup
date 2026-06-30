@@ -24,6 +24,9 @@ Current honest state:
   `~/.pi/agent/models.json`
 - the CLI reads a GonkaGate API key from `GONKAGATE_API_KEY`,
   `--api-key-stdin`, or a hidden prompt
+- the CLI fetches available models from GonkaGate `/v1/models` after API-key
+  input
+- the CLI uses an arrow-key model picker in interactive terminals
 - the CLI writes a Pi-compatible `gonkagate` API-key entry in
   `~/.pi/agent/auth.json`
 - the CLI sets `defaultProvider` and `defaultModel` in
@@ -40,12 +43,13 @@ The intended minimal happy path is:
 
 1. user runs `npx -y @gonkagate/pi-setup@latest`
 2. installer resolves the Pi `models.json` path
-3. installer lets the user choose a curated GonkaGate model or uses the
-   recommended model in non-interactive mode
-4. installer upserts the curated GonkaGate provider config
-5. installer stores the API key in Pi `auth.json` without printing it
-6. installer sets Pi defaults in `settings.json`
-7. user returns to plain `pi`
+3. installer fetches available models from GonkaGate `/v1/models`
+4. installer lets the user choose a fetched GonkaGate model or uses the first
+   fetched model in non-interactive mode
+5. installer upserts the GonkaGate provider config with fetched models
+6. installer stores the API key in Pi `auth.json` without printing it
+7. installer sets Pi defaults in `settings.json`
+8. user returns to plain `pi`
 
 ## Fixed Product Invariants
 
@@ -59,7 +63,7 @@ The intended minimal happy path is:
 - the durable Pi settings config target is `~/.pi/agent/settings.json`
 - the managed provider key is `providers.gonkagate`
 - the managed auth key is `gonkagate`
-- the managed provider catalog includes every public curated GonkaGate model
+- the managed provider catalog comes from GonkaGate `/v1/models` at setup time
 - the CLI must preserve unrelated providers and top-level config values
 - the provider auth binding remains exactly `apiKey: "$GONKAGATE_API_KEY"`
 - the allowed secret inputs are `GONKAGATE_API_KEY`, `--api-key-stdin`, and a
@@ -68,7 +72,7 @@ The intended minimal happy path is:
 - shell profile mutation is out of scope
 - `.env` file generation is out of scope
 - arbitrary custom base URLs are out of scope
-- arbitrary custom model ids are out of scope
+- arbitrary custom model ids outside fetched `/v1/models` are out of scope
 - concurrent-writer safety is not claimed without locking or an equivalent
   design
 - live GonkaGate/Pi session verification is out of scope for the initial
@@ -92,7 +96,8 @@ The intended minimal happy path is:
 - `src/config.ts` owns the Pi `models.json` merge behavior
 - `src/install/user-config.ts` owns the Pi `auth.json` and `settings.json`
   merge behavior
-- `src/constants.ts` owns the GonkaGate provider and curated model contract
+- `src/constants.ts` owns the GonkaGate provider endpoint constants
+- `src/install/deps.ts` owns setup-time GonkaGate `/v1/models` fetching
 - `src/paths.ts` owns default Pi path resolution
 - `docs/specs/pi-setup-prd/spec.md` is the current product requirements
   document and task-planning source

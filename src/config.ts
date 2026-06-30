@@ -1,5 +1,6 @@
 import { PI_MODELS_JSON_OWNERSHIP } from "./install/ownership.js";
 import { createGonkagateProviderConfig } from "./install/provider-config.js";
+import type { GonkaGateModel } from "./constants.js";
 export {
   createGonkagateProviderConfig,
   type PiProviderConfig,
@@ -18,7 +19,10 @@ export function parseModelsConfig(text: string): JsonObject {
   return parsed;
 }
 
-export function mergeGonkagateProviderConfig(config: JsonObject): JsonObject {
+export function mergeGonkagateProviderConfig(
+  config: JsonObject,
+  models: readonly GonkaGateModel[],
+): JsonObject {
   const providers = isJsonObject(config.providers) ? config.providers : {};
   const [, providerId] = PI_MODELS_JSON_OWNERSHIP.ownedPath;
 
@@ -26,7 +30,7 @@ export function mergeGonkagateProviderConfig(config: JsonObject): JsonObject {
     ...config,
     providers: {
       ...providers,
-      [providerId]: createGonkagateProviderConfig(),
+      [providerId]: createGonkagateProviderConfig(models),
     },
   };
 }

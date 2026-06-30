@@ -4,9 +4,10 @@
 
 ### Features
 
-- Add v2 Pi setup flow with curated model selection, safe API-key intake via
-  `GONKAGATE_API_KEY`, `--api-key-stdin`, or a hidden prompt, Pi `auth.json`
-  storage, and Pi default model settings.
+- Add v2 Pi setup flow with `/v1/models` model selection, safe API-key intake
+  via `GONKAGATE_API_KEY`, `--api-key-stdin`, or a hidden prompt, Pi
+  `auth.json` storage, and Pi default model settings.
+- Add an arrow-key interactive model picker for TTY setup.
 
 ### Security
 

@@ -4,12 +4,7 @@ import {
   createNodeInstallDependencies,
   type InstallDependencies,
 } from "./install/deps.js";
-import {
-  BIN_NAME,
-  GONKAGATE_API_KEY_ENV,
-  PACKAGE_NAME,
-  RECOMMENDED_MODEL_ID,
-} from "./constants.js";
+import { BIN_NAME, GONKAGATE_API_KEY_ENV, PACKAGE_NAME } from "./constants.js";
 import { isEntrypointInvocation } from "./entrypoint.js";
 import {
   toFailureResult,
@@ -37,6 +32,7 @@ interface CliIo {
   readonly input: NodeJS.ReadableStream & { readonly isTTY?: boolean };
   readonly output: NodeJS.WritableStream & { readonly isTTY?: boolean };
   readonly error: NodeJS.WritableStream;
+  readonly fetchModels?: InstallDependencies["fetchModels"];
   readonly promptSecret?: InstallDependencies["promptSecret"];
   readonly promptSelectModel?: InstallDependencies["promptSelectModel"];
 }
@@ -107,6 +103,7 @@ export async function run(
         ...nodeDeps,
         env,
         error: io.error,
+        fetchModels: io.fetchModels ?? nodeDeps.fetchModels,
         input: io.input,
         output: io.output,
         promptSecret: io.promptSecret ?? nodeDeps.promptSecret,
@@ -227,8 +224,8 @@ Usage:
   ${BIN_NAME} [--yes] [--model <id>] [--api-key-stdin] [--config <path>] [--dry-run] [--json]
 
 Options:
-  --yes, -y          Use the recommended model and non-interactive defaults
-  --model <id>      Choose a curated GonkaGate model id
+  --yes, -y          Use the first fetched model and non-interactive defaults
+  --model <id>      Choose a GonkaGate model id from /v1/models
   --api-key-stdin   Read the GonkaGate API key from stdin
   --config <path>   Pi models.json path (default: ~/.pi/agent/models.json)
   --dry-run         Preview the managed config without writing
@@ -271,7 +268,9 @@ function renderResult(result: InstallResult, dryRun: boolean): string {
   lines.push(
     "",
     "Status: configured, not live verified.",
-    `Next: pi --provider gonkagate --model ${result.selectedModelId ?? RECOMMENDED_MODEL_ID}`,
+    ...(result.selectedModelId === undefined
+      ? []
+      : [`Next: pi --provider gonkagate --model ${result.selectedModelId}`]),
     "Then use plain pi after Pi reloads settings.json.",
     "If Pi is already running, open /model or restart Pi to reload models.json.",
   );

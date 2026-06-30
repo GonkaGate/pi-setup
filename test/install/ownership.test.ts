@@ -4,6 +4,7 @@ import { GONKAGATE_PROVIDER_ID } from "../../src/constants.js";
 import { createGonkagateProviderMergePlan } from "../../src/install/config-mutations.js";
 import { PI_MODELS_JSON_OWNERSHIP } from "../../src/install/ownership.js";
 import { createGonkagateProviderConfig } from "../../src/install/provider-config.js";
+import { TEST_MODELS } from "../model-fixtures.js";
 
 test("Pi ownership model declares only providers.gonkagate", () => {
   assert.deepEqual(PI_MODELS_JSON_OWNERSHIP, {
@@ -26,6 +27,7 @@ test("ownership replacement changes only the managed provider", () => {
       },
     },
     "{}\n",
+    TEST_MODELS,
   );
 
   assert.equal(plan.config.defaultProvider, "anthropic");
@@ -36,6 +38,6 @@ test("ownership replacement changes only the managed provider", () => {
   );
   assert.deepEqual(
     (plan.config.providers as Record<string, unknown>)[GONKAGATE_PROVIDER_ID],
-    createGonkagateProviderConfig(),
+    createGonkagateProviderConfig(TEST_MODELS),
   );
 });

@@ -29,16 +29,19 @@ Pi's provider, auth, or default-model config.
 - Preserves unrelated Pi providers and top-level config.
 - Reads your API key from `GONKAGATE_API_KEY`, `--api-key-stdin`, or a hidden
   prompt.
+- Fetches the current GonkaGate model list from `/v1/models` using that API key.
+- Shows an arrow-key model picker in interactive terminals.
 - Writes a Pi-compatible `gonkagate` API-key entry to
   `~/.pi/agent/auth.json`.
 - Sets `defaultProvider` and `defaultModel` in `~/.pi/agent/settings.json`.
 - Creates sibling backups before replacing existing managed files.
-- Installs the curated GonkaGate model catalog for Pi Coding Agent.
+- Installs the fetched GonkaGate model list for Pi Coding Agent.
 - Does not accept a plain `--api-key` flag and never prints `gp-...` keys.
 
 Setup success means `configured`: GonkaGate config and Pi auth/default settings
-were written or already matched. It does not mean `verified`; default setup does
-not make a live GonkaGate API call.
+were written or already matched. It does not mean `verified`; default setup only
+calls `/v1/models` for model metadata and does not verify a live Pi chat
+session.
 
 ## Quick Start
 
@@ -59,6 +62,9 @@ Preview the generated config without writing:
 npx -y @gonkagate/pi-setup@latest --dry-run
 ```
 
+Dry runs still need an API-key source because model choices come from
+`/v1/models`.
+
 Use a custom config path during testing:
 
 ```bash
@@ -71,10 +77,10 @@ pattern beside `auth.json` and `settings.json`.
 
 ## Limits
 
-The setup is local-file-only and network-free. It does not mutate shell
+The setup only makes the `/v1/models` metadata request. It does not mutate shell
 profiles, generate `.env` files, accept `--api-key`, support arbitrary custom
-base URLs, support arbitrary custom model ids, claim concurrent-writer safety,
-or run default live GonkaGate/Pi verification.
+base URLs, support arbitrary custom model ids outside `/v1/models`, claim
+concurrent-writer safety, or run default live GonkaGate/Pi verification.
 
 Deferred features require the evidence gates in
 [`docs/specs/pi-setup-prd/spec.md`](docs/specs/pi-setup-prd/spec.md) before

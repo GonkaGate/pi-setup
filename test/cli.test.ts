@@ -11,12 +11,8 @@ import { join } from "node:path";
 import { Readable } from "node:stream";
 import test from "node:test";
 import { renderCliEntrypointError, run } from "../src/cli.js";
-import {
-  GONKAGATE_PROVIDER_ID,
-  RECOMMENDED_MODEL_ID,
-} from "../src/constants.js";
-
-const TEST_ENV = { GONKAGATE_API_KEY: "TESTKEY" };
+import { GONKAGATE_PROVIDER_ID } from "../src/constants.js";
+import { TEST_ENV, TEST_MODELS } from "./model-fixtures.js";
 
 test("CLI writes GonkaGate provider config", async () => {
   const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
@@ -48,7 +44,7 @@ test("CLI writes GonkaGate provider config", async () => {
   ) as { defaultModel: string; defaultProvider: string };
   assert.deepEqual(auth.gonkagate, { type: "api_key", key: "TESTKEY" });
   assert.equal(settings.defaultProvider, GONKAGATE_PROVIDER_ID);
-  assert.equal(settings.defaultModel, RECOMMENDED_MODEL_ID);
+  assert.equal(settings.defaultModel, TEST_MODELS[0].id);
 });
 
 test("CLI success output stays configured-not-verified", async () => {
@@ -163,7 +159,7 @@ test("CLI dry-run resolves home config paths without creating parents", async ()
 
   const exitCode = await run(
     ["node", "cli", "--config", "~/agent/models.json", "--dry-run", "--json"],
-    { HOME: root },
+    { HOME: root, ...TEST_ENV },
     createTestIo(output, error),
   );
 
@@ -187,7 +183,7 @@ test("CLI dry-run reports changed without writing or creating backup", async () 
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--dry-run", "--json"],
-    {},
+    TEST_ENV,
     createTestIo(output, error),
   );
 
@@ -226,7 +222,7 @@ test("CLI dry-run reports already configured without writing", async () => {
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--dry-run", "--json"],
-    {},
+    TEST_ENV,
     createTestIo(output, error),
   );
 
@@ -482,11 +478,17 @@ test("CLI can read the API key from stdin without printing it", async () => {
   const configPath = join(root, "models.json");
   const output: string[] = [];
   const error: string[] = [];
+  let modelsFetchedWithKey = "";
 
   const exitCode = await run(
     ["node", "cli", "--config", configPath, "--api-key-stdin", "--yes"],
     {},
-    createTestIo(output, error, Readable.from(["STDINKEY\n"])),
+    createTestIo(output, error, Readable.from(["STDINKEY\n"]), {
+      fetchModels: async (apiKey) => {
+        modelsFetchedWithKey = apiKey;
+        return TEST_MODELS;
+      },
+    }),
   );
 
   assert.equal(exitCode, 0);
@@ -497,9 +499,10 @@ test("CLI can read the API key from stdin without printing it", async () => {
     gonkagate: { key: string };
   };
   assert.equal(auth.gonkagate.key, "STDINKEY");
+  assert.equal(modelsFetchedWithKey, "STDINKEY");
 });
 
-test("CLI rejects non-curated model ids before writing", async () => {
+test("CLI rejects model ids missing from the models endpoint before writing", async () => {
   const root = await mkdtemp(join(tmpdir(), "pi-setup-"));
   const configPath = join(root, "models.json");
   const output: string[] = [];
@@ -523,8 +526,12 @@ function createTestIo(
   input: NodeJS.ReadableStream & { readonly isTTY?: boolean } = Readable.from(
     [],
   ),
+  options: {
+    readonly fetchModels?: (apiKey: string) => Promise<typeof TEST_MODELS>;
+  } = {},
 ) {
   return {
+    fetchModels: options.fetchModels ?? (async () => TEST_MODELS),
     input: Object.assign(input, { isTTY: false }),
     output: {
       isTTY: false,

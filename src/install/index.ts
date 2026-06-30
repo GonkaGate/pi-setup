@@ -1,9 +1,8 @@
 import { dirname, join } from "node:path";
 import {
-  CURATED_MODELS,
   GONKAGATE_API_KEY_ENV,
   GONKAGATE_PROVIDER_ID,
-  RECOMMENDED_MODEL_ID,
+  type GonkaGateModel,
 } from "../constants.js";
 import { parseModelsConfig } from "../config.js";
 import { createGonkagateProviderMergePlan } from "./config-mutations.js";
@@ -59,12 +58,15 @@ export async function installGonkagateProvider(
     existingText === undefined
       ? {}
       : parseExistingConfig(existingText, configPath);
+  const apiKey = await resolveApiKey(options, deps);
+  const models = await resolveAvailableModels(apiKey, deps);
   const mergePlan = createGonkagateProviderMergePlan(
     existingConfig,
     existingText,
+    models,
   );
-  const modelIds = CURATED_MODELS.map((model) => model.id);
-  const selectedModelId = await resolveSelectedModelId(options, deps);
+  const modelIds = models.map((model) => model.id);
+  const selectedModelId = await resolveSelectedModelId(options, deps, models);
   const authPath = join(dirname(configPath), "auth.json");
   const settingsPath = join(dirname(configPath), "settings.json");
   const baseResult = {
@@ -115,7 +117,6 @@ export async function installGonkagateProvider(
     };
   }
 
-  const apiKey = await resolveApiKey(options, deps);
   const existingAuthText = await readOptionalText(authPath, deps);
   const authConfig =
     existingAuthText === undefined
@@ -274,12 +275,52 @@ function parseExistingJsonObject(text: string, path: string, label: string) {
   }
 }
 
+async function resolveAvailableModels(
+  apiKey: string,
+  deps: InstallDependencies,
+): Promise<readonly GonkaGateModel[]> {
+  try {
+    const models = await deps.fetchModels?.(apiKey);
+
+    if (models === undefined) {
+      throw new Error("GonkaGate models fetcher is not configured.");
+    }
+
+    if (models.length === 0) {
+      throw new Error("GonkaGate models endpoint returned no models.");
+    }
+
+    return models;
+  } catch (error) {
+    if (error instanceof InstallError) {
+      throw error;
+    }
+
+    const reason =
+      error instanceof Error ? error.message : "Unknown models endpoint error.";
+    throw new InstallError(
+      "models_unavailable",
+      `Could not fetch GonkaGate models: ${reason}`,
+      { cause: error },
+    );
+  }
+}
+
 async function resolveSelectedModelId(
   options: InstallOptions,
   deps: InstallDependencies,
+  models: readonly GonkaGateModel[],
 ): Promise<string> {
+  const defaultModelId = models[0]?.id;
+  if (defaultModelId === undefined) {
+    throw new InstallError(
+      "models_unavailable",
+      "GonkaGate models endpoint returned no models.",
+    );
+  }
+
   if (options.modelId !== undefined) {
-    const model = CURATED_MODELS.find((entry) => entry.id === options.modelId);
+    const model = models.find((entry) => entry.id === options.modelId);
 
     if (model === undefined) {
       throw new InstallError(
@@ -292,19 +333,20 @@ async function resolveSelectedModelId(
   }
 
   if (options.yes || deps.output.isTTY !== true || deps.input.isTTY !== true) {
-    return RECOMMENDED_MODEL_ID;
+    return defaultModelId;
   }
 
-  const prompted = await deps.promptSelectModel?.(
-    CURATED_MODELS,
-    RECOMMENDED_MODEL_ID,
-  );
+  const prompted = await deps.promptSelectModel?.(models, defaultModelId);
 
   if (prompted === undefined || prompted === "") {
-    return RECOMMENDED_MODEL_ID;
+    return defaultModelId;
   }
 
-  return await resolveSelectedModelId({ ...options, modelId: prompted }, deps);
+  return await resolveSelectedModelId(
+    { ...options, modelId: prompted },
+    deps,
+    models,
+  );
 }
 
 async function resolveApiKey(

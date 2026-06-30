@@ -13,6 +13,7 @@ import {
 import { InstallError, toFailureResult } from "../src/install/errors.js";
 import { installGonkagateProvider } from "../src/install/index.js";
 import { createGonkagateProviderConfig } from "../src/install/provider-config.js";
+import { TEST_ENV, TEST_MODELS } from "./model-fixtures.js";
 
 test("install runtime writes GonkaGate provider without CLI globals", async () => {
   const root = await mkdtemp(join(tmpdir(), "pi-setup-install-"));
@@ -22,7 +23,7 @@ test("install runtime writes GonkaGate provider without CLI globals", async () =
   const result = await installGonkagateProvider(
     configPath,
     false,
-    createNodeInstallDependencies(),
+    createNodeTestDependencies(),
   );
 
   assert.equal(result.changed, true);
@@ -47,7 +48,7 @@ test("install runtime dry-run does not create config files", async () => {
   const result = await installGonkagateProvider(
     configPath,
     true,
-    createNodeInstallDependencies(),
+    createNodeTestDependencies(),
   );
 
   assert.equal(result.changed, true);
@@ -114,7 +115,7 @@ test("install runtime uses stubbed clock for backup names", async () => {
 test("install runtime skips backup and writes for unchanged content", async () => {
   const currentText = stringifyModelsConfig({
     providers: {
-      [GONKAGATE_PROVIDER_ID]: createGonkagateProviderConfig(),
+      [GONKAGATE_PROVIDER_ID]: createGonkagateProviderConfig(TEST_MODELS),
     },
   });
   let copied = false;
@@ -282,8 +283,9 @@ function createStubInstallDependencies(
   return {
     clock: { now: () => new Date("2026-01-01T00:00:00.000Z") },
     cwd: "/work",
-    env: { HOME: "/tmp/home" },
+    env: { HOME: "/tmp/home", ...TEST_ENV },
     error: { write: () => true } as unknown as NodeJS.WritableStream,
+    fetchModels: async () => TEST_MODELS,
     homeDirectory: "/tmp/home",
     input: { isTTY: true } as NodeJS.ReadableStream & {
       readonly isTTY?: boolean;
@@ -299,6 +301,14 @@ function createStubInstallDependencies(
     runCommand: async () => ({ exitCode: 0 }),
     ...dependencyOverrides,
     fs,
+  };
+}
+
+function createNodeTestDependencies(): InstallDependencies {
+  return {
+    ...createNodeInstallDependencies(),
+    env: TEST_ENV,
+    fetchModels: async () => TEST_MODELS,
   };
 }
 

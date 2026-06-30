@@ -4,6 +4,7 @@ export type InstallErrorCode =
   | "backup_failed"
   | "invalid_config"
   | "missing_home"
+  | "models_unavailable"
   | "rollback_failed"
   | "secret_required"
   | "unsupported_model"

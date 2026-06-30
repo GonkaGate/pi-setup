@@ -1,3 +1,4 @@
+import type { GonkaGateModel } from "../constants.js";
 import {
   type JsonObject,
   mergeGonkagateProviderConfig,
@@ -13,8 +14,9 @@ export interface ModelsConfigMergePlan {
 export function createGonkagateProviderMergePlan(
   existingConfig: JsonObject,
   existingText: string | undefined,
+  models: readonly GonkaGateModel[],
 ): ModelsConfigMergePlan {
-  const config = mergeGonkagateProviderConfig(existingConfig);
+  const config = mergeGonkagateProviderConfig(existingConfig, models);
   const text = stringifyModelsConfig(config);
 
   return {

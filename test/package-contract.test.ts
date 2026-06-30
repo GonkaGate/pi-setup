@@ -6,6 +6,7 @@ import {
   BIN_PATH,
   GONKAGATE_API_KEY_BINDING,
   GONKAGATE_BASE_URL,
+  GONKAGATE_MODELS_URL,
   GONKAGATE_PI_API,
   GONKAGATE_PROVIDER_ID,
   LEGACY_BIN_NAME,
@@ -69,6 +70,7 @@ test("source constants match the fixed Pi public contract", () => {
   assert.equal(BIN_PATH, "bin/gonkagate-pi.js");
   assert.equal(GONKAGATE_PROVIDER_ID, "gonkagate");
   assert.equal(GONKAGATE_BASE_URL, "https://api.gonkagate.com/v1");
+  assert.equal(GONKAGATE_MODELS_URL, "https://api.gonkagate.com/v1/models");
   assert.equal(GONKAGATE_PI_API, "openai-completions");
   assert.equal(GONKAGATE_API_KEY_BINDING, "$GONKAGATE_API_KEY");
   assert.equal(

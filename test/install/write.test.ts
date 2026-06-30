@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
 import { GONKAGATE_PROVIDER_ID } from "../../src/constants.js";
 import { installGonkagateProvider } from "../../src/install/index.js";
+import { createTestInstallDependencies } from "../model-fixtures.js";
 import { createPiInstallHarness } from "./harness.js";
 
 test("managed write backs up existing config before atomic replacement", async () => {
@@ -12,7 +13,11 @@ test("managed write backs up existing config before atomic replacement", async (
   })}\n`;
   await harness.writeConfigText(original);
 
-  const result = await installGonkagateProvider(harness.configPath, false);
+  const result = await installGonkagateProvider(
+    harness.configPath,
+    false,
+    createTestInstallDependencies(harness.env),
+  );
 
   assert.equal(result.changed, true);
   assert.equal(result.backupPath !== undefined, true);
@@ -32,7 +37,11 @@ test("managed write backs up existing config before atomic replacement", async (
 test("managed write creates no backup for a new target file", async () => {
   const harness = await createPiInstallHarness();
 
-  const result = await installGonkagateProvider(harness.configPath, false);
+  const result = await installGonkagateProvider(
+    harness.configPath,
+    false,
+    createTestInstallDependencies(harness.env),
+  );
 
   assert.equal(result.changed, true);
   assert.equal(result.backupPath, undefined);
@@ -47,7 +56,11 @@ test("managed write uses owner-only target mode where POSIX supports it", async 
 
   const harness = await createPiInstallHarness();
 
-  await installGonkagateProvider(harness.configPath, false);
+  await installGonkagateProvider(
+    harness.configPath,
+    false,
+    createTestInstallDependencies(harness.env),
+  );
 
   assert.equal((await stat(harness.configPath)).mode & 0o777, 0o600);
 });

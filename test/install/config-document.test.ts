@@ -3,12 +3,17 @@ import test from "node:test";
 import { GONKAGATE_PROVIDER_ID } from "../../src/constants.js";
 import { InstallError } from "../../src/install/errors.js";
 import { installGonkagateProvider } from "../../src/install/index.js";
+import { createTestInstallDependencies } from "../model-fixtures.js";
 import { createPiInstallHarness } from "./harness.js";
 
 test("missing models config is treated as an empty object", async () => {
   const harness = await createPiInstallHarness();
 
-  const result = await installGonkagateProvider(harness.configPath, true);
+  const result = await installGonkagateProvider(
+    harness.configPath,
+    true,
+    createTestInstallDependencies(harness.env),
+  );
 
   assert.equal(result.changed, true);
   assert.equal(result.configPath, harness.configPath);
@@ -49,7 +54,11 @@ test("scalar providers are replaced while top-level config is preserved", async 
     `${JSON.stringify({ defaultProvider: "anthropic", providers: "stale" })}\n`,
   );
 
-  await installGonkagateProvider(harness.configPath, false);
+  await installGonkagateProvider(
+    harness.configPath,
+    false,
+    createTestInstallDependencies(harness.env),
+  );
 
   const config = await harness.readConfig();
   assert.equal(config.defaultProvider, "anthropic");

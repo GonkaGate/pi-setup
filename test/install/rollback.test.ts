@@ -7,6 +7,7 @@ import {
   runRollbackActions,
   type RollbackAction,
 } from "../../src/install/rollback.js";
+import { createTestInstallDependencies } from "../model-fixtures.js";
 import { createPiInstallHarness } from "./harness.js";
 
 test("rollback restores backup contents", async () => {
@@ -108,7 +109,7 @@ test("install rollback restores original config after a late failure", async () 
   })}\n`;
   await harness.writeConfigText(original);
   const deps = {
-    ...createNodeInstallDependencies(),
+    ...createTestInstallDependencies(harness.env),
     afterWrite: async () => {
       throw new Error("late failure");
     },

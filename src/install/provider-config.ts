@@ -1,9 +1,9 @@
 import {
-  CURATED_MODELS,
   GONKAGATE_API_KEY_BINDING,
   GONKAGATE_BASE_URL,
   GONKAGATE_PI_API,
   GONKAGATE_PROVIDER_NAME,
+  type GonkaGateModel,
 } from "../constants.js";
 
 export interface PiProviderModelConfig {
@@ -19,13 +19,15 @@ export interface PiProviderConfig {
   readonly name: string;
 }
 
-export function createGonkagateProviderConfig(): PiProviderConfig {
+export function createGonkagateProviderConfig(
+  models: readonly GonkaGateModel[],
+): PiProviderConfig {
   return {
     name: GONKAGATE_PROVIDER_NAME,
     baseUrl: GONKAGATE_BASE_URL,
     api: GONKAGATE_PI_API,
     apiKey: GONKAGATE_API_KEY_BINDING,
-    models: CURATED_MODELS.map((model) => ({
+    models: models.map((model) => ({
       id: model.id,
       name: model.name,
     })),

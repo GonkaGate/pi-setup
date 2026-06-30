@@ -20,6 +20,8 @@ Current runtime contract:
 - base URL: `https://api.gonkagate.com/v1`
 - Pi API type: `openai-completions`
 - auth binding: `apiKey: "$GONKAGATE_API_KEY"`
+- model list source: setup-time `GET /v1/models`
+- interactive model selection: arrow-key picker
 - setup success: `configured`, not live `verified`
 
 Rules:
@@ -35,7 +37,7 @@ Rules:
 - never add a plain `--api-key` flag
 - do not mutate shell profiles
 - do not generate `.env` files
-- do not add arbitrary custom base URLs or arbitrary custom model ids
+- do not add arbitrary custom base URLs or model ids outside `/v1/models`
 - do not claim default live GonkaGate/Pi verification
 - keep TypeScript imports runtime-correct for compiled ESM
 - run `npm run ci` before calling the change ready

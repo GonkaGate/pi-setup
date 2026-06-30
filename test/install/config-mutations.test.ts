@@ -4,14 +4,15 @@ import { GONKAGATE_PROVIDER_ID } from "../../src/constants.js";
 import { stringifyModelsConfig } from "../../src/config.js";
 import { createGonkagateProviderMergePlan } from "../../src/install/config-mutations.js";
 import { createGonkagateProviderConfig } from "../../src/install/provider-config.js";
+import { TEST_MODELS } from "../model-fixtures.js";
 
 test("merge plan creates a new GonkaGate provider config", () => {
-  const plan = createGonkagateProviderMergePlan({}, undefined);
+  const plan = createGonkagateProviderMergePlan({}, undefined, TEST_MODELS);
 
   assert.equal(plan.changed, true);
   assert.deepEqual(plan.config, {
     providers: {
-      [GONKAGATE_PROVIDER_ID]: createGonkagateProviderConfig(),
+      [GONKAGATE_PROVIDER_ID]: createGonkagateProviderConfig(TEST_MODELS),
     },
   });
 });
@@ -25,6 +26,7 @@ test("merge plan preserves unrelated providers and top-level values", () => {
       },
     },
     "{}\n",
+    TEST_MODELS,
   );
 
   assert.equal(plan.config.defaultProvider, "anthropic");
@@ -44,16 +46,17 @@ test("merge plan replaces stale managed GonkaGate provider", () => {
       },
     },
     "{}\n",
+    TEST_MODELS,
   );
 
   assert.deepEqual(
     (plan.config.providers as Record<string, unknown>)[GONKAGATE_PROVIDER_ID],
-    createGonkagateProviderConfig(),
+    createGonkagateProviderConfig(TEST_MODELS),
   );
 });
 
 test("merge plan emits deterministic two-space JSON with newline", () => {
-  const plan = createGonkagateProviderMergePlan({}, undefined);
+  const plan = createGonkagateProviderMergePlan({}, undefined, TEST_MODELS);
 
   assert.equal(plan.text, `${JSON.stringify(plan.config, null, 2)}\n`);
   assert.match(plan.text, /\n  "providers":/);
@@ -63,11 +66,15 @@ test("merge plan emits deterministic two-space JSON with newline", () => {
 test("merge plan reports idempotent no-op before filesystem work", () => {
   const currentConfig = {
     providers: {
-      [GONKAGATE_PROVIDER_ID]: createGonkagateProviderConfig(),
+      [GONKAGATE_PROVIDER_ID]: createGonkagateProviderConfig(TEST_MODELS),
     },
   };
   const currentText = stringifyModelsConfig(currentConfig);
-  const plan = createGonkagateProviderMergePlan(currentConfig, currentText);
+  const plan = createGonkagateProviderMergePlan(
+    currentConfig,
+    currentText,
+    TEST_MODELS,
+  );
 
   assert.equal(plan.changed, false);
   assert.equal(plan.text, currentText);

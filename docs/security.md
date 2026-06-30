@@ -18,6 +18,9 @@ models load consistently with Pi's provider schema:
 }
 ```
 
+The CLI also uses the supplied API key for the setup-time `/v1/models` metadata
+request. It does not print or store that key outside Pi `auth.json`.
+
 Security rules:
 
 - no `--api-key` flag
@@ -25,7 +28,7 @@ Security rules:
 - no repository-local secret storage
 - no shell profile mutation
 - no `.env` generation
-- no arbitrary custom base URLs or arbitrary custom model ids
+- no arbitrary custom base URLs or model ids outside fetched `/v1/models`
 - no default live Pi/GonkaGate verification
 - backup before replacing existing `models.json`, `auth.json`, or
   `settings.json`

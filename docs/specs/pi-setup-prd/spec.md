@@ -19,10 +19,10 @@ Recommended public flow:
 npx -y @gonkagate/pi-setup@latest
 ```
 
-The v2 runtime stays intentionally small: write a curated GonkaGate provider
-entry, store the GonkaGate API key in Pi's auth file, and set Pi's default
-provider/model. It does not mutate shell profiles, generate `.env` files, or
-run live verification by default.
+The v2 runtime stays intentionally small: fetch GonkaGate models from
+`/v1/models`, write a GonkaGate provider entry, store the GonkaGate API key in
+Pi's auth file, and set Pi's default provider/model. It does not mutate shell
+profiles, generate `.env` files, or run live chat verification by default.
 
 ## Problem
 
@@ -45,8 +45,8 @@ Pi's own config files and model-switching behavior.
 - Preserve unrelated Pi custom providers and top-level config.
 - Use the canonical GonkaGate base URL `https://api.gonkagate.com/v1`.
 - Use Pi's OpenAI-compatible API type `openai-completions`.
-- Install every public curated GonkaGate model into the provider catalog.
-- Keep the recommended public path as one `npx` command.
+- Install the setup-time `/v1/models` response into the provider catalog.
+- Keep the public setup path as one `npx` command.
 - Read secrets only from `GONKAGATE_API_KEY`, `--api-key-stdin`, or a hidden
   prompt.
 - Store the key only in Pi's `~/.pi/agent/auth.json`.
@@ -61,7 +61,7 @@ Pi's own config files and model-switching behavior.
 - Do not generate `.env` files.
 - Do not accept secrets through plain CLI flags such as `--api-key`.
 - Do not support arbitrary custom base URLs.
-- Do not support arbitrary user-provided model ids.
+- Do not support arbitrary user-provided model ids outside `/v1/models`.
 - Do not claim live GonkaGate/Pi session verification until implemented.
 - Do not claim concurrent-writer safety for simultaneous setup processes
   unless locking or atomic replacement is explicitly implemented.
@@ -76,17 +76,18 @@ These features stay out of the current runtime until the listed evidence exists:
   restore behavior, cross-platform tests, and explicit user consent.
 - `.env` generation: needs target-file ownership, git-safety policy, restore
   behavior, and explicit user consent.
-- Arbitrary custom base URLs or arbitrary custom model ids: need validation
+- Arbitrary custom base URLs or model ids outside `/v1/models`: need validation
   rules, support boundaries, docs, tests, and an abuse/security review.
 - Concurrent-writer safety claims: need locking or an equivalent design with
   failure-mode tests on supported platforms. Until then, docs must not claim
   simultaneous setup processes are safe.
-- Live Pi/GonkaGate verification: needs an explicit opt-in design that separates
-  local Pi provider visibility from live GonkaGate API calls, avoids printing or
-  storing raw `gp-...` keys, and records user consent before any network check.
+- Live Pi/GonkaGate verification: needs an explicit opt-in design that
+  separates the setup-time `/v1/models` metadata request from live chat/Pi
+  verification, avoids printing or storing raw `gp-...` keys, and records user
+  consent before any verification check.
 
-The default setup remains network-free and limited to local Pi config files:
-`models.json`, `auth.json`, and `settings.json`.
+The default setup makes only the `/v1/models` metadata request, then writes
+local Pi config files: `models.json`, `auth.json`, and `settings.json`.
 
 ## Current Pi Integration Contract
 
@@ -96,8 +97,9 @@ Current behavior is owned by these files:
 
 - `package.json`: npm package name, public bins, runtime package shape, scripts,
   Node engine, and publishable file list.
-- `src/constants.ts`: provider id, provider name, GonkaGate base URL, Pi API
-  type, auth env binding, recommended model, and curated model catalog.
+- `src/constants.ts`: provider id, provider name, GonkaGate base URL, models
+  URL, Pi API type, and auth env binding.
+- `src/install/deps.ts`: setup-time `/v1/models` fetching and model picker I/O.
 - `src/paths.ts`: default Pi `models.json` target and custom config path
   resolution.
 - `src/install/user-config.ts`: Pi `auth.json` and `settings.json` merge
@@ -135,7 +137,7 @@ Managed settings:
 ```json
 {
   "defaultProvider": "gonkagate",
-  "defaultModel": "moonshotai/Kimi-K2.6"
+  "defaultModel": "dynamic/model-id"
 }
 ```
 
@@ -149,56 +151,33 @@ Managed provider config:
   "apiKey": "$GONKAGATE_API_KEY",
   "models": [
     {
-      "id": "qwen/qwen3-235b-a22b-instruct-2507-fp8",
-      "name": "Qwen3 235B A22B Instruct"
-    },
-    {
-      "id": "moonshotai/Kimi-K2.6",
-      "name": "Kimi K2.6"
-    },
-    {
-      "id": "minimaxai/minimax-m2.7",
-      "name": "MiniMax M2.7"
+      "id": "dynamic/model-id",
+      "name": "dynamic/model-id"
     }
   ]
 }
 ```
 
-Recommended model:
+Default model source:
 
 ```text
-moonshotai/Kimi-K2.6
+first model returned by /v1/models unless --model selects another fetched id
 ```
 
 ## Model Catalog Requirements
 
-Every curated GonkaGate model entry must have:
+GonkaGate `/v1/models` is the source of truth for setup-time model ids. The
+repository must not require a code or docs change when public GonkaGate models
+are added or removed.
+
+Every fetched GonkaGate model entry used in provider config must have:
 
 - stable provider-facing `id`
-- human-readable `name`
-- explicit recommended-model ownership in source code
-- docs coverage when the public curated list changes
-- tests proving every curated model is present in the generated provider config
+- Pi provider `name`, using the API name when present and falling back to `id`
+- tests proving fetched models are present in the generated provider config
 
-Before first public release, each curated model must also have an explicit
-decision for these Pi model fields:
-
-- `reasoning`
-- `input`
-- `contextWindow`
-- `maxTokens`
-- `cost`
-- `compat`
-
-The decision may be "use Pi defaults for v1", but it must be intentional and
-documented. Do not silently rely on defaults for model behavior that affects
-tools, thinking, context limits, usage reporting, or compatibility.
-
-Current metadata decision: every curated model records
-`use-pi-default-v1` for `reasoning`, `input`, `contextWindow`, `maxTokens`,
-`cost`, and `compat` in `src/constants.ts`. The generated provider config keeps
-only the currently supported `id` and `name` fields until product requirements
-approve adding more Pi model metadata.
+The generated provider config keeps only the currently supported `id` and `name`
+fields until product requirements approve adding more Pi model metadata.
 
 ## User Experience
 
@@ -213,18 +192,20 @@ npx -y @gonkagate/pi-setup@latest
 Expected behavior:
 
 1. CLI resolves the default Pi config directory.
-2. CLI lets the user choose a curated GonkaGate model when interactive.
-3. CLI reads the API key from `GONKAGATE_API_KEY`, `--api-key-stdin`, or a
+2. CLI reads the API key from `GONKAGATE_API_KEY`, `--api-key-stdin`, or a
    hidden prompt.
-4. CLI writes the managed GonkaGate provider.
-5. CLI writes the `gonkagate` auth entry.
-6. CLI sets Pi defaults to GonkaGate and the selected model.
-7. CLI preserves unrelated Pi config and creates backups before replacing
+3. CLI fetches available models from GonkaGate `/v1/models`.
+4. CLI lets the user choose a fetched GonkaGate model with an arrow-key model
+   picker when interactive.
+5. CLI writes the managed GonkaGate provider.
+6. CLI writes the `gonkagate` auth entry.
+7. CLI sets Pi defaults to GonkaGate and the selected model.
+8. CLI preserves unrelated Pi config and creates backups before replacing
    existing files.
-8. CLI prints the next command:
+9. CLI prints the next command:
 
 ```bash
-pi --provider gonkagate --model moonshotai/Kimi-K2.6
+pi --provider gonkagate --model dynamic/model-id
 ```
 
 The CLI must not describe local config-write success as proof of live model
@@ -246,7 +227,7 @@ npx -y @gonkagate/pi-setup@latest --yes
 Expected behavior:
 
 - no prompt
-- uses the recommended model unless `--model <id>` is provided
+- uses the first fetched model unless `--model <id>` is provided
 - requires `GONKAGATE_API_KEY` or `--api-key-stdin` for non-interactive writes
 - `--yes` is accepted for compatibility with existing docs and scripts
 - non-zero exit code on parse/write failure
@@ -264,6 +245,7 @@ Expected behavior:
 - no file writes
 - result says whether the target config would change
 - no backup is created
+- still requires an API-key source because model ids come from `/v1/models`
 
 ### Machine-Readable Output
 
@@ -494,7 +476,7 @@ Possible future behavior:
 Possible future behavior:
 
 - run a Pi command that lists models or validates provider availability
-- prove that `gonkagate` appears with the curated models
+- prove that `gonkagate` appears with the fetched models
 - avoid sending live prompts unless the user explicitly asks for a live smoke
   check
 
@@ -502,9 +484,10 @@ Possible future behavior:
 
 Current behavior:
 
-- show curated model list interactively
+- fetch `/v1/models` after API-key input
+- show fetched model list with an arrow-key model picker interactively
 - let user choose Pi's default GonkaGate model
-- keep every curated model in the provider catalog
+- keep fetched models in the provider catalog
 
 ### Pi Extension
 
@@ -523,8 +506,7 @@ Possible future behavior:
   `models.json` with comments?
 - Should first public release require atomic replacement, or is backup-first
   direct writing acceptable?
-- Should curated model entries include explicit `reasoning`, `contextWindow`,
-  `maxTokens`, `cost`, and `compat` metadata before publication?
+- Do we need cache/refresh behavior if `/v1/models` changes after setup?
 
 ## Acceptance Criteria For V2
 
@@ -556,7 +538,7 @@ Use this PRD to create implementation tasks in this rough order:
 2. Protect package metadata, docs, and skill mirror with tests.
 3. Implement config-path resolution.
 4. Implement provider config generation.
-5. Decide curated model metadata policy.
+5. Implement setup-time `/v1/models` fetch and dynamic model picker.
 6. Implement parse/merge/stringify behavior.
 7. Implement backup and write flow.
 8. Document backup restore.

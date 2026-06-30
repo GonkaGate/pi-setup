@@ -84,6 +84,7 @@ test("public docs keep the fixed v2 Pi contract", () => {
       /~\/\.pi\/agent\/settings\.json/,
       /providers\.gonkagate/,
       /GONKAGATE_API_KEY/,
+      /arrow-key model picker/,
       /auth\.json/,
       /settings\.json/,
       /--api-key-stdin/,
@@ -91,7 +92,7 @@ test("public docs keep the fixed v2 Pi contract", () => {
       /shell\s+profiles|shell profile mutation/,
       /\.env/,
       /arbitrary custom\s+base URLs/,
-      /arbitrary.*model ids/,
+      /arbitrary.*model ids.*\/v1\/models/,
       /backup/i,
       /concurrent-writer safety/,
       /configured/,
@@ -109,23 +110,24 @@ test("PRD defines explicit evidence gates for deferred work", () => {
     /Deferred Work Gates/,
     /Shell profile mutation: needs supported-shell scope/,
     /`\.env` generation: needs target-file ownership/,
-    /Arbitrary custom base URLs or arbitrary custom model ids: need validation/,
+    /Arbitrary custom base URLs or model ids outside `\/v1\/models`: need validation/,
     /Concurrent-writer safety claims: need locking or an equivalent design/,
     /docs must not claim\s+simultaneous setup processes are safe/,
     /Live Pi\/GonkaGate verification: needs an explicit opt-in design/,
-    /separates\s+local Pi provider visibility from live GonkaGate API calls/,
-    /The default setup remains network-free and limited to local Pi config files/,
+    /separates\s+the setup-time `\/v1\/models` metadata request from live chat\/Pi/,
+    /The default setup makes only the `\/v1\/models` metadata request/,
   ]);
 });
 
-test("PRD documents curated model metadata decisions", () => {
+test("PRD documents dynamic model catalog decisions", () => {
   const prd = readText("docs/specs/pi-setup-prd/spec.md");
 
   assertMatchesAll(prd, [
-    /Current metadata decision/,
-    /`use-pi-default-v1` for `reasoning`, `input`, `contextWindow`, `maxTokens`,/,
-    /`cost`, and `compat` in `src\/constants\.ts`/,
-    /generated provider config keeps\s+only the currently supported `id` and `name` fields/,
+    /GonkaGate `\/v1\/models` is the source of truth/,
+    /arrow-key model\s+picker/,
+    /must not require a code or docs change when public GonkaGate models/,
+    /using the API name when present and falling back to `id`/,
+    /generated provider config keeps only the currently supported `id` and `name`/,
   ]);
 });
 

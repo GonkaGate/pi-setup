@@ -1,19 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CURATED_MODELS, GONKAGATE_PROVIDER_ID } from "../../src/constants.js";
+import { GONKAGATE_PROVIDER_ID } from "../../src/constants.js";
+import { createNodeInstallDependencies } from "../../src/install/deps.js";
 import { installGonkagateProvider } from "../../src/install/index.js";
 import { createGonkagateProviderConfig } from "../../src/install/provider-config.js";
+import { TEST_ENV, TEST_MODELS } from "../model-fixtures.js";
 import { createPiInstallHarness } from "./harness.js";
 
 test("unchanged reruns are idempotent and create no backup", async () => {
   const harness = await createPiInstallHarness();
+  const deps = createHarnessDependencies(harness.env);
 
   assert.equal(
-    (await installGonkagateProvider(harness.configPath, false)).changed,
+    (await installGonkagateProvider(harness.configPath, false, deps)).changed,
     true,
   );
   assert.equal(
-    (await installGonkagateProvider(harness.configPath, false)).changed,
+    (await installGonkagateProvider(harness.configPath, false, deps)).changed,
     false,
   );
   assert.deepEqual(await harness.listBackups(), []);
@@ -21,6 +24,7 @@ test("unchanged reruns are idempotent and create no backup", async () => {
 
 test("changed reruns back up stale managed provider before replacement", async () => {
   const harness = await createPiInstallHarness();
+  const deps = createHarnessDependencies(harness.env);
   await harness.writeConfigText(
     `${JSON.stringify({
       providers: {
@@ -30,7 +34,11 @@ test("changed reruns back up stale managed provider before replacement", async (
     })}\n`,
   );
 
-  const result = await installGonkagateProvider(harness.configPath, false);
+  const result = await installGonkagateProvider(
+    harness.configPath,
+    false,
+    deps,
+  );
   const config = await harness.readConfig();
 
   assert.equal(result.changed, true);
@@ -41,12 +49,13 @@ test("changed reruns back up stale managed provider before replacement", async (
   });
   assert.deepEqual(
     (config.providers as Record<string, unknown>)[GONKAGATE_PROVIDER_ID],
-    createGonkagateProviderConfig(),
+    createGonkagateProviderConfig(TEST_MODELS),
   );
 });
 
 test("rerun refreshes the managed catalog without touching unrelated config", async () => {
   const harness = await createPiInstallHarness();
+  const deps = createHarnessDependencies(harness.env);
   await harness.writeConfigText(
     `${JSON.stringify({
       customTopLevel: { keep: true },
@@ -59,7 +68,7 @@ test("rerun refreshes the managed catalog without touching unrelated config", as
     })}\n`,
   );
 
-  await installGonkagateProvider(harness.configPath, false);
+  await installGonkagateProvider(harness.configPath, false, deps);
 
   const config = await harness.readConfig();
   const providers = config.providers as Record<string, unknown>;
@@ -70,6 +79,14 @@ test("rerun refreshes the managed catalog without touching unrelated config", as
   assert.deepEqual(providers.other, { apiKey: "$OTHER" });
   assert.deepEqual(
     managed.models.map((model) => model.id),
-    CURATED_MODELS.map((model) => model.id),
+    TEST_MODELS.map((model) => model.id),
   );
 });
+
+function createHarnessDependencies(env: NodeJS.ProcessEnv) {
+  return {
+    ...createNodeInstallDependencies(),
+    env: { ...env, ...TEST_ENV },
+    fetchModels: async () => TEST_MODELS,
+  };
+}

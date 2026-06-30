@@ -14,6 +14,13 @@
 - Keep plain `--api-key` unsupported and redact accidental `gp-...` keys from
   user-facing error output.
 
+## [0.4.0](https://github.com/GonkaGate/pi-setup/compare/v0.3.0...v0.4.0) (2026-06-30)
+
+
+### Features
+
+* document release commit naming ([f5d75e8](https://github.com/GonkaGate/pi-setup/commit/f5d75e825f5c3b7fd03b38b3c16cb4ed1430f260))
+
 ## [0.3.0](https://github.com/GonkaGate/pi-setup/compare/v0.2.2...v0.3.0) (2026-06-23)
 
 
